@@ -71,7 +71,7 @@ public sealed class SigenCachedApiClient
             token => _innerClient.GetSystemRealtimeDataAsync(systemId, token),
             cancellationToken);
 
-    public Task<SigenApiEnvelope<SigenEnergyFlowData>> GetSystemEnergyFlowAsync(
+    public Task<SigenApiEnvelope<string>> GetSystemEnergyFlowAsync(
         string systemId,
         TimeSpan cachePeriod,
         CancellationToken cancellationToken = default) =>
@@ -91,6 +91,18 @@ public sealed class SigenCachedApiClient
             $"system:{systemId}:history:{useV1Path}:{BuildQueryKey(query)}",
             cachePeriod,
             token => _innerClient.GetSystemHistoricalDataAsync(systemId, query, useV1Path, token),
+            cancellationToken);
+
+    public Task<SigenApiEnvelope<string>> GetSystemHistoricalDataV1Async(
+        string systemId,
+        string level,
+        DateOnly date,
+        TimeSpan cachePeriod,
+        CancellationToken cancellationToken = default) =>
+        GetOrSetAsync(
+            $"system:{systemId}:history:v1:{level}:{date:yyyy-MM-dd}",
+            cachePeriod,
+            token => _innerClient.GetSystemHistoricalDataV1Async(systemId, level, date, token),
             cancellationToken);
 
     public Task<SigenApiEnvelope<string>> GetDeviceRealtimeDataAsync(

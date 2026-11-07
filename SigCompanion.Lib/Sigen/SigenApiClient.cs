@@ -144,11 +144,12 @@ public sealed class SigenApiClient
         return await DeserializeEnvelopeAsync<SigenSystemRealtimeData>(response, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<SigenApiEnvelope<SigenEnergyFlowData>> GetSystemEnergyFlowAsync(string systemId, CancellationToken cancellationToken = default)
+    public async Task<SigenApiEnvelope<string>> GetSystemEnergyFlowAsync(string systemId, CancellationToken cancellationToken = default)
     {
         var path = $"/openapi/systems/{Uri.EscapeDataString(Require(systemId, nameof(systemId)))}/energyFlow";
         var response = await SendAuthorizedAsync(HttpMethod.Get, path, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return await DeserializeEnvelopeAsync<SigenEnergyFlowData>(response, cancellationToken).ConfigureAwait(false);
+        var envelope = await DeserializeEnvelopeAsync<JsonElement>(response, cancellationToken).ConfigureAwait(false);
+        return NormalizeJsonDataEnvelopeToString(envelope);
     }
 
     public async Task<SigenApiEnvelope<SigenHistoricalSeries>> GetSystemHistoricalDataAsync(
@@ -163,6 +164,26 @@ public sealed class SigenApiClient
 
         var response = await SendAuthorizedAsync(HttpMethod.Get, path, query, cancellationToken: cancellationToken).ConfigureAwait(false);
         return await DeserializeEnvelopeAsync<SigenHistoricalSeries>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<SigenApiEnvelope<string>> GetSystemHistoricalDataV1Async(
+        string systemId,
+        string level,
+        DateOnly date,
+        CancellationToken cancellationToken = default)
+    {
+        var requiredLevel = Require(level, nameof(level));
+        var path = $"/openapi/systems/{Uri.EscapeDataString(Require(systemId, nameof(systemId)))}/v1/history";
+
+        var query = new Dictionary<string, string>
+        {
+            ["level"] = requiredLevel,
+            ["date"] = date.ToString("yyyy-MM-dd"),
+        };
+
+        var response = await SendAuthorizedAsync(HttpMethod.Get, path, query, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var envelope = await DeserializeEnvelopeAsync<JsonElement>(response, cancellationToken).ConfigureAwait(false);
+        return NormalizeJsonDataEnvelopeToString(envelope);
     }
 
     public async Task<SigenApiEnvelope<string>> GetDeviceRealtimeDataAsync(

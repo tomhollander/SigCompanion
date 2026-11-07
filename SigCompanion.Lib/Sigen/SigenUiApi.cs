@@ -5,8 +5,9 @@ namespace SigCompanion.Lib.Sigen;
 
 public sealed class SigenUiApi
 {
+    private const string HistoricalLevelDay = "Day";
     private static readonly TimeSpan DefaultCachePeriod = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan DeviceDiscoveryCachePeriod = TimeSpan.FromHours(24);
+    private static readonly TimeSpan HistoricalYesterdayCachePeriod = TimeSpan.FromDays(400);
 
     private readonly SigenCachedApiClient _cachedApiClient;
 
@@ -45,30 +46,13 @@ public sealed class SigenUiApi
     {
         var requiredSystemId = RequireArgument(systemId, nameof(systemId));
 
-        var inverterSerialNumber = await GetInverterSerialNumberAsync(requiredSystemId, cancellationToken).ConfigureAwait(false);
+        var energyFlow = await GetEnergyFlowDataAsync(requiredSystemId, cancellationToken).ConfigureAwait(false);
 
-        var realtimeEnvelope = await _cachedApiClient
-            .GetDeviceRealtimeDataAsync(requiredSystemId, inverterSerialNumber, DefaultCachePeriod, cancellationToken)
-            .ConfigureAwait(false);
+        var batteryStateOfCharge = energyFlow.BatterySoc
+            ?? throw new InvalidOperationException("Energy flow data is missing required field 'batterySoc'.");
 
-        ValidateEnvelope(realtimeEnvelope, "Failed to get device realtime data.");
-
-        if (string.IsNullOrWhiteSpace(realtimeEnvelope.Data))
-        {
-            throw new InvalidOperationException("Device realtime data payload was empty.");
-        }
-
-        var realtimeData = JsonSerializer.Deserialize<SigenDeviceRealtimeData>(realtimeEnvelope.Data)
-            ?? throw new InvalidOperationException("Device realtime data payload could not be parsed.");
-
-        var realtimeInfo = realtimeData.RealTimeInfo
-            ?? throw new InvalidOperationException("Device realtime data is missing required field 'realTimeInfo'.");
-
-        var batteryStateOfCharge = realtimeInfo.BatSoc
-            ?? throw new InvalidOperationException("Device realtime data is missing required field 'realTimeInfo.batSoc'.");
-
-        var batteryPower = realtimeInfo.BatPower
-            ?? throw new InvalidOperationException("Device realtime data is missing required field 'realTimeInfo.batPower'.");
+        var batteryPower = energyFlow.BatteryPower
+            ?? throw new InvalidOperationException("Energy flow data is missing required field 'batteryPower'.");
 
         var systems = await GetSystemListDataAsync(cancellationToken).ConfigureAwait(false);
         var system = systems.FirstOrDefault(item => string.Equals(item.SystemId, requiredSystemId, StringComparison.Ordinal))
@@ -81,6 +65,54 @@ public sealed class SigenUiApi
             BatteryStateOfCharge = batteryStateOfCharge,
             BatteryStatus = MapBatteryStatus(batteryPower),
             IsGridConnected = string.Equals(onOffGridStatus, "onGrid", StringComparison.Ordinal),
+        };
+    }
+
+    public async Task<SigenPowerFlowSnapshot> GetPowerFlowSnapshotAsync(string systemId, CancellationToken cancellationToken = default)
+    {
+        var requiredSystemId = RequireArgument(systemId, nameof(systemId));
+        var energyFlow = await GetEnergyFlowDataAsync(requiredSystemId, cancellationToken).ConfigureAwait(false);
+
+        return new SigenPowerFlowSnapshot
+        {
+            PvPower = RequirePowerValue(energyFlow.PvPower, "pvPower"),
+            GridPower = RequirePowerValue(energyFlow.GridPower, "gridPower"),
+            EvPower = RequirePowerValue(energyFlow.EvPower, "evPower"),
+            AcPower = RequirePowerValue(energyFlow.AcPower, "acPower"),
+            LoadPower = RequirePowerValue(energyFlow.LoadPower, "loadPower"),
+            HeatPumpPower = RequirePowerValue(energyFlow.HeatPumpPower, "heatPumpPower"),
+            BatteryPower = RequirePowerValue(energyFlow.BatteryPower, "batteryPower"),
+        };
+    }
+
+    public async Task<SigenHistoricalComparisonSnapshot> GetHistoricalDayComparisonAsync(string systemId, CancellationToken cancellationToken = default)
+    {
+        var requiredSystemId = RequireArgument(systemId, nameof(systemId));
+
+        var systems = await GetSystemListDataAsync(cancellationToken).ConfigureAwait(false);
+        var system = systems.FirstOrDefault(item => string.Equals(item.SystemId, requiredSystemId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException($"System '{requiredSystemId}' was not found in the system list.");
+
+        var todayDate = GetSystemTodayDate(system.TimeZone);
+        var yesterdayDate = todayDate.AddDays(-1);
+
+        var todayTask = GetHistoricalV1DayDataAsync(requiredSystemId, todayDate, DefaultCachePeriod, cancellationToken);
+        var yesterdayTask = GetHistoricalV1DayDataAsync(requiredSystemId, yesterdayDate, HistoricalYesterdayCachePeriod, cancellationToken);
+
+        await Task.WhenAll(todayTask, yesterdayTask).ConfigureAwait(false);
+
+        var today = await todayTask.ConfigureAwait(false);
+        var yesterday = await yesterdayTask.ConfigureAwait(false);
+
+        var rows = BuildStationCardRows(today.StationCards, yesterday.StationCards);
+
+        return new SigenHistoricalComparisonSnapshot
+        {
+            TodayDate = todayDate,
+            YesterdayDate = yesterdayDate,
+            StationCards = rows,
+            TodayChartData = SerializeToJsonElement(today.ChartData),
+            YesterdayChartData = SerializeToJsonElement(yesterday.ChartData),
         };
     }
 
@@ -101,34 +133,91 @@ public sealed class SigenUiApi
             ?? throw new InvalidOperationException("System list payload was empty.");
     }
 
-    private async Task<string> GetInverterSerialNumberAsync(string systemId, CancellationToken cancellationToken)
+    private async Task<SigenEnergyFlowData> GetEnergyFlowDataAsync(string systemId, CancellationToken cancellationToken)
     {
         var envelope = await _cachedApiClient
-            .GetDeviceListAsync(systemId, DeviceDiscoveryCachePeriod, cancellationToken)
+            .GetSystemEnergyFlowAsync(systemId, DefaultCachePeriod, cancellationToken)
             .ConfigureAwait(false);
 
-        ValidateEnvelope(envelope, "Failed to get device list.");
+        ValidateEnvelope(envelope, "Failed to get energy flow data.");
 
-        var rawDevices = envelope.Data ?? [];
-        var devices = rawDevices
-            .Select(ParseDeviceInfo)
-            .ToArray();
-
-        var inverter = devices.FirstOrDefault(device => string.Equals(device.DeviceType, "Inverter", StringComparison.Ordinal))
-            ?? throw new InvalidOperationException($"System '{systemId}' does not contain an inverter device.");
-
-        return RequireDeviceField(inverter.SerialNumber, "serialNumber");
-    }
-
-    private static SigenDeviceInfo ParseDeviceInfo(string rawDeviceJson)
-    {
-        if (string.IsNullOrWhiteSpace(rawDeviceJson))
+        if (string.IsNullOrWhiteSpace(envelope.Data))
         {
-            throw new InvalidOperationException("Device list item is empty.");
+            throw new InvalidOperationException("Energy flow data payload was empty.");
         }
 
-        return JsonSerializer.Deserialize<SigenDeviceInfo>(rawDeviceJson)
-            ?? throw new InvalidOperationException("Device list item could not be parsed.");
+        return JsonSerializer.Deserialize<SigenEnergyFlowData>(envelope.Data)
+            ?? throw new InvalidOperationException("Energy flow data payload could not be parsed.");
+    }
+
+    private async Task<SigenHistoricalV1Data> GetHistoricalV1DayDataAsync(
+        string systemId,
+        DateOnly date,
+        TimeSpan cachePeriod,
+        CancellationToken cancellationToken)
+    {
+        var envelope = await _cachedApiClient
+            .GetSystemHistoricalDataV1Async(systemId, HistoricalLevelDay, date, cachePeriod, cancellationToken)
+            .ConfigureAwait(false);
+
+        ValidateEnvelope(envelope, "Failed to get historical day data.");
+
+        if (string.IsNullOrWhiteSpace(envelope.Data))
+        {
+            throw new InvalidOperationException("Historical day data payload was empty.");
+        }
+
+        return JsonSerializer.Deserialize<SigenHistoricalV1Data>(envelope.Data)
+            ?? throw new InvalidOperationException("Historical day data payload could not be parsed.");
+    }
+
+    private static DateOnly GetSystemTodayDate(string? systemTimeZone)
+    {
+        if (string.IsNullOrWhiteSpace(systemTimeZone))
+        {
+            return DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+
+        try
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById(systemTimeZone);
+            var now = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, tz);
+            return DateOnly.FromDateTime(now.DateTime);
+        }
+        catch
+        {
+            return DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+    }
+
+    private static IReadOnlyList<SigenStationCardComparisonRow> BuildStationCardRows(
+        IReadOnlyList<SigenStationCard>? todayCards,
+        IReadOnlyList<SigenStationCard>? yesterdayCards)
+    {
+        var todayMap = (todayCards ?? [])
+            .Where(card => !string.IsNullOrWhiteSpace(card.CardKey))
+            .ToDictionary(card => card.CardKey!, card => card.Value ?? 0m, StringComparer.Ordinal);
+
+        var yesterdayMap = (yesterdayCards ?? [])
+            .Where(card => !string.IsNullOrWhiteSpace(card.CardKey))
+            .ToDictionary(card => card.CardKey!, card => card.Value ?? 0m, StringComparer.Ordinal);
+
+        var keys = todayMap.Keys
+            .Union(yesterdayMap.Keys, StringComparer.Ordinal)
+            .OrderBy(key => key, StringComparer.Ordinal)
+            .ToArray();
+
+        return keys.Select(key => new SigenStationCardComparisonRow
+        {
+            CardKey = key,
+            TodayKwh = todayMap.GetValueOrDefault(key, 0m),
+            YesterdayKwh = yesterdayMap.GetValueOrDefault(key, 0m),
+        }).ToArray();
+    }
+
+    private static JsonElement SerializeToJsonElement<T>(T value)
+    {
+        return JsonSerializer.SerializeToElement(value);
     }
 
     private static BatteryStatus MapBatteryStatus(decimal batPower)
@@ -166,14 +255,14 @@ public sealed class SigenUiApi
         return value;
     }
 
-    private static string RequireDeviceField(string? value, string fieldName)
+    private static decimal RequirePowerValue(decimal? value, string fieldName)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (!value.HasValue)
         {
-            throw new InvalidOperationException($"Device list item is missing required field '{fieldName}'.");
+            throw new InvalidOperationException($"Energy flow data is missing required field '{fieldName}'.");
         }
 
-        return value;
+        return value.Value;
     }
 
     private static void ValidateEnvelope<T>(SigenApiEnvelope<T> envelope, string fallbackMessage)

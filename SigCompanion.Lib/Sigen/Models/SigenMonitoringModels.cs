@@ -107,26 +107,37 @@ public sealed class SigenSystemRealtimeData
 
 public sealed class SigenEnergyFlowData
 {
-    [JsonPropertyName("systemId")]
-    public string? SystemId { get; init; }
+    [JsonPropertyName("pvPower")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? PvPower { get; init; }
 
-    [JsonPropertyName("timestamp")]
-    public DateTimeOffset? Timestamp { get; init; }
+    [JsonPropertyName("gridPower")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? GridPower { get; init; }
 
-    [JsonPropertyName("pvToLoad")]
-    public decimal? PvToLoad { get; init; }
+    [JsonPropertyName("evPower")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? EvPower { get; init; }
 
-    [JsonPropertyName("pvToBattery")]
-    public decimal? PvToBattery { get; init; }
+    [JsonPropertyName("acPower")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? AcPower { get; init; }
 
-    [JsonPropertyName("gridToLoad")]
-    public decimal? GridToLoad { get; init; }
+    [JsonPropertyName("loadPower")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? LoadPower { get; init; }
 
-    [JsonPropertyName("batteryToLoad")]
-    public decimal? BatteryToLoad { get; init; }
+    [JsonPropertyName("heatPumpPower")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? HeatPumpPower { get; init; }
 
-    [JsonExtensionData]
-    public Dictionary<string, JsonElement>? Extra { get; init; }
+    [JsonPropertyName("batteryPower")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? BatteryPower { get; init; }
+
+    [JsonPropertyName("batterySoc")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? BatterySoc { get; init; }
 }
 
 public sealed class SigenDeviceRealtimeData

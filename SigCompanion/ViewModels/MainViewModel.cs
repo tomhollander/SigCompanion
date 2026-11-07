@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -36,6 +37,16 @@ namespace SigCompanion.ViewModels
             batterySoc = "-";
             batteryStatus = "-";
             gridStatus = "-";
+            pvPower = "-";
+            gridPower = "-";
+            evPower = "-";
+            acPower = "-";
+            loadPower = "-";
+            heatPumpPower = "-";
+            batteryPower = "-";
+            historicalStationCards = [];
+            todayChartDataJson = "-";
+            yesterdayChartDataJson = "-";
             username = string.Empty;
             password = string.Empty;
             currentPage = AppPage.Login;
@@ -74,6 +85,36 @@ namespace SigCompanion.ViewModels
 
         [ObservableProperty]
         private string gridStatus;
+
+        [ObservableProperty]
+        private string pvPower;
+
+        [ObservableProperty]
+        private string gridPower;
+
+        [ObservableProperty]
+        private string evPower;
+
+        [ObservableProperty]
+        private string acPower;
+
+        [ObservableProperty]
+        private string loadPower;
+
+        [ObservableProperty]
+        private string heatPumpPower;
+
+        [ObservableProperty]
+        private string batteryPower;
+
+        [ObservableProperty]
+        private ObservableCollection<SigenStationCardComparisonRow> historicalStationCards;
+
+        [ObservableProperty]
+        private string todayChartDataJson;
+
+        [ObservableProperty]
+        private string yesterdayChartDataJson;
 
         [ObservableProperty]
         private bool isBusy;
@@ -214,6 +255,16 @@ namespace SigCompanion.ViewModels
             BatterySoc = "-";
             BatteryStatus = "-";
             GridStatus = "-";
+            PvPower = "-";
+            GridPower = "-";
+            EvPower = "-";
+            AcPower = "-";
+            LoadPower = "-";
+            HeatPumpPower = "-";
+            BatteryPower = "-";
+            HistoricalStationCards.Clear();
+            TodayChartDataJson = "-";
+            YesterdayChartDataJson = "-";
 
             CurrentPage = AppPage.Login;
             StatusMessage = "Signed out.";
@@ -262,11 +313,36 @@ namespace SigCompanion.ViewModels
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var snapshot = await _sigenUiApi.GetBatteryStatusAsync(systemId, cancellationToken);
+                    var batteryStatusTask = _sigenUiApi.GetBatteryStatusAsync(systemId, cancellationToken);
+                    var powerFlowTask = _sigenUiApi.GetPowerFlowSnapshotAsync(systemId, cancellationToken);
+                    var historicalTask = _sigenUiApi.GetHistoricalDayComparisonAsync(systemId, cancellationToken);
+
+                    await Task.WhenAll(batteryStatusTask, powerFlowTask, historicalTask);
+
+                    var snapshot = await batteryStatusTask;
+                    var powerFlow = await powerFlowTask;
+                    var historical = await historicalTask;
 
                     BatterySoc = $"{snapshot.BatteryStateOfCharge:0.##}%";
                     BatteryStatus = snapshot.BatteryStatus.ToString();
                     GridStatus = snapshot.IsGridConnected ? "Connected" : "Disconnected";
+
+                    PvPower = FormatPower(powerFlow.PvPower);
+                    GridPower = FormatPower(powerFlow.GridPower);
+                    EvPower = FormatPower(powerFlow.EvPower);
+                    AcPower = FormatPower(powerFlow.AcPower);
+                    LoadPower = FormatPower(powerFlow.LoadPower);
+                    HeatPumpPower = FormatPower(powerFlow.HeatPumpPower);
+                    BatteryPower = FormatPower(powerFlow.BatteryPower);
+
+                    HistoricalStationCards.Clear();
+                    foreach (var row in historical.StationCards)
+                    {
+                        HistoricalStationCards.Add(row);
+                    }
+
+                    TodayChartDataJson = JsonSerializer.Serialize(historical.TodayChartData, new JsonSerializerOptions { WriteIndented = false });
+                    YesterdayChartDataJson = JsonSerializer.Serialize(historical.YesterdayChartData, new JsonSerializerOptions { WriteIndented = false });
 
                     await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
                 }
@@ -279,6 +355,8 @@ namespace SigCompanion.ViewModels
                 StatusMessage = ex.Message;
             }
         }
+
+        private static string FormatPower(decimal power) => $"{power:0.###} kW";
 
         public enum AppPage
         {

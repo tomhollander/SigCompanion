@@ -40,6 +40,51 @@
                 <TextBlock Text="Grid Status" FontWeight="Bold" />
                 <TextBlock Text="{Binding GridStatus}" />
 
+                <TextBlock Text="PV Power" FontWeight="Bold" />
+                <TextBlock Text="{Binding PvPower}" />
+
+                <TextBlock Text="Grid Power" FontWeight="Bold" />
+                <TextBlock Text="{Binding GridPower}" />
+
+                <TextBlock Text="EV Power" FontWeight="Bold" />
+                <TextBlock Text="{Binding EvPower}" />
+
+                <TextBlock Text="AC Power" FontWeight="Bold" />
+                <TextBlock Text="{Binding AcPower}" />
+
+                <TextBlock Text="Load Power" FontWeight="Bold" />
+                <TextBlock Text="{Binding LoadPower}" />
+
+                <TextBlock Text="Heat Pump Power" FontWeight="Bold" />
+                <TextBlock Text="{Binding HeatPumpPower}" />
+
+                <TextBlock Text="Battery Power" FontWeight="Bold" />
+                <TextBlock Text="{Binding BatteryPower}" />
+
+                <TextBlock Text="Station Card Totals (kWh)" FontWeight="Bold" Margin="0,8,0,0" />
+                <Grid ColumnDefinitions="2*,*,*" Margin="0,0,0,4">
+                    <TextBlock Grid.Column="0" Text="Card" FontWeight="Bold" />
+                    <TextBlock Grid.Column="1" Text="Today" FontWeight="Bold" />
+                    <TextBlock Grid.Column="2" Text="Yesterday" FontWeight="Bold" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding HistoricalStationCards}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="2*,*,*" Margin="0,0,0,2">
+                                <TextBlock Grid.Column="0" Text="{Binding CardKey}" />
+                                <TextBlock Grid.Column="1" Text="{Binding TodayKwh}" />
+                                <TextBlock Grid.Column="2" Text="{Binding YesterdayKwh}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="Chart Data Today (raw)" FontWeight="Bold" Margin="0,8,0,0" />
+                <TextBox Text="{Binding TodayChartDataJson}" IsReadOnly="True" AcceptsReturn="True" Height="100" TextWrapping="Wrap" />
+
+                <TextBlock Text="Chart Data Yesterday (raw)" FontWeight="Bold" Margin="0,8,0,0" />
+                <TextBox Text="{Binding YesterdayChartDataJson}" IsReadOnly="True" AcceptsReturn="True" Height="100" TextWrapping="Wrap" />
+
                 <Button Content="Settings" Command="{Binding OpenSettingsCommand}" Width="120" />
             </StackPanel>
 
