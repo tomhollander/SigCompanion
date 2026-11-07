@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sigen Open Platform"
+  short_description: "Query Sigen through secure browser authorization"
+  default_prompt: "Use $sigen-open-platform to query my Sigen user information."

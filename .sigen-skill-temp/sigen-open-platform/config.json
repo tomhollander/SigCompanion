@@ -1,0 +1,8 @@
+{
+  "region": "manifest-required",
+  "login_url": "https://invalid.invalid/manifest-required/login",
+  "mcp_url": "https://invalid.invalid/manifest-required/mcp",
+  "token_url": "https://invalid.invalid/manifest-required/token",
+  "catalog_url": "https://invalid.invalid/manifest-required/catalog",
+  "installation_required": true
+}

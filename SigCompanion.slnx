@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="SigCompanion.Android/SigCompanion.Android.csproj" />
+  <Project Path="SigCompanion.Browser/SigCompanion.Browser.csproj" />
+  <Project Path="SigCompanion.Desktop/SigCompanion.Desktop.csproj" />
+  <Project Path="SigCompanion.iOS/SigCompanion.iOS.csproj" />
+  <Project Path="SigCompanion.Lib/SigCompanion.Lib.csproj" />
+  <Project Path="SigCompanion/SigCompanion.csproj" />
+</Solution>
