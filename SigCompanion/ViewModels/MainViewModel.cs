@@ -35,8 +35,10 @@ namespace SigCompanion.ViewModels
             systems = [];
             statusMessage = "Loading...";
             batterySoc = "-";
+            batterySocValue = 0d;
             batteryStatus = "-";
             gridStatus = "-";
+            isGridConnected = true;
             pvPower = "-";
             gridPower = "-";
             evPower = "-";
@@ -81,10 +83,16 @@ namespace SigCompanion.ViewModels
         private string batterySoc;
 
         [ObservableProperty]
+        private double batterySocValue;
+
+        [ObservableProperty]
         private string batteryStatus;
 
         [ObservableProperty]
         private string gridStatus;
+
+        [ObservableProperty]
+        private bool isGridConnected;
 
         [ObservableProperty]
         private string pvPower;
@@ -123,8 +131,9 @@ namespace SigCompanion.ViewModels
         private AppPage currentPage;
 
         public bool IsLoginPageVisible => CurrentPage == AppPage.Login;
-        public bool IsMainPageVisible => CurrentPage == AppPage.Main;
+        public bool IsMainPageVisible => CurrentPage != AppPage.Settings;
         public bool IsSettingsPageVisible => CurrentPage == AppPage.Settings;
+        public bool IsGridDisconnected => !IsGridConnected;
 
         private readonly IAsyncRelayCommand signInCommand;
         public IAsyncRelayCommand SignInCommand => signInCommand;
@@ -253,8 +262,10 @@ namespace SigCompanion.ViewModels
             SelectedSystem = null;
             Systems.Clear();
             BatterySoc = "-";
+            BatterySocValue = 0d;
             BatteryStatus = "-";
             GridStatus = "-";
+            IsGridConnected = true;
             PvPower = "-";
             GridPower = "-";
             EvPower = "-";
@@ -277,6 +288,11 @@ namespace SigCompanion.ViewModels
             OnPropertyChanged(nameof(IsLoginPageVisible));
             OnPropertyChanged(nameof(IsMainPageVisible));
             OnPropertyChanged(nameof(IsSettingsPageVisible));
+        }
+
+        partial void OnIsGridConnectedChanged(bool value)
+        {
+            OnPropertyChanged(nameof(IsGridDisconnected));
         }
 
         partial void OnSelectedSystemChanged(SigenSystemReference? value)
@@ -323,7 +339,9 @@ namespace SigCompanion.ViewModels
                     var powerFlow = await powerFlowTask;
                     var historical = await historicalTask;
 
-                    BatterySoc = $"{snapshot.BatteryStateOfCharge:0.##}%";
+                    BatterySocValue = (double)snapshot.BatteryStateOfCharge;
+                    IsGridConnected = snapshot.IsGridConnected;
+                    BatterySoc = $"{snapshot.BatteryStateOfCharge:0}%";
                     BatteryStatus = snapshot.BatteryStatus.ToString();
                     GridStatus = snapshot.IsGridConnected ? "Connected" : "Disconnected";
 

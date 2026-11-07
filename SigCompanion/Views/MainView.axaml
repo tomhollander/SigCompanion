@@ -3,6 +3,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SigCompanion.ViewModels"
+             xmlns:views="using:SigCompanion.Views"
+             xmlns:controls="using:SigCompanion.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SigCompanion.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -10,100 +12,86 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <ScrollViewer>
-        <StackPanel Margin="20" Spacing="10">
-            <TextBlock Text="Temporary Sigen Test UI" FontWeight="Bold" FontSize="18" />
+    <Grid Background="#000000">
+        <Border IsVisible="{Binding IsMainPageVisible}" Background="#000000" Padding="18" MinHeight="640">
+            <Grid ColumnDefinitions="1.1*,1*" ColumnSpacing="24" RowDefinitions="Auto,*">
+                <Button Grid.ColumnSpan="2"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Width="36"
+                        Height="36"
+                        Padding="6"
+                        Command="{Binding OpenSettingsCommand}">
+                    <Image Source="/Assets/settings.png" Stretch="Uniform" />
+                </Button>
 
-            <StackPanel Spacing="8" IsVisible="{Binding IsLoginPageVisible}">
-                <TextBlock Text="Login" FontWeight="Bold" />
+                <StackPanel Grid.Column="0" Grid.Row="0" HorizontalAlignment="Center" Margin="0,28,0,0" Spacing="8">
+                    <Grid Width="360" Height="360">
+                        <controls:BatteryGaugeControl StateOfCharge="{Binding BatterySocValue}" IsGridConnected="{Binding IsGridConnected}" />
 
-                <TextBlock Text="Username" />
-                <TextBox Text="{Binding Username, Mode=TwoWay}" Watermark="Username" />
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+                            <Image Source="/Assets/grid_disconnected.png"
+                                   Width="34"
+                                   Height="34"
+                                   HorizontalAlignment="Center"
+                                   IsVisible="{Binding IsGridDisconnected}" />
 
-                <TextBlock Text="Password" />
-                <TextBox Text="{Binding Password, Mode=TwoWay}" PasswordChar="*" Watermark="Password" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                <Image Source="/Assets/icon_battery.png" Width="24" Height="24" />
+                                <TextBlock Text="{Binding BatterySoc}" Foreground="#FFFFFF" FontSize="44" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
 
-                <CheckBox IsChecked="{Binding SavePassword, Mode=TwoWay}" Content="Save password" />
-
-                <Button Content="Sign In" Command="{Binding SignInCommand}" Width="120" />
-            </StackPanel>
-
-            <StackPanel Spacing="8" IsVisible="{Binding IsMainPageVisible}">
-                <TextBlock Text="Main" FontWeight="Bold" />
-
-                <TextBlock Text="Battery SOC" FontWeight="Bold" />
-                <TextBlock Text="{Binding BatterySoc}" />
-
-                <TextBlock Text="Charge Status" FontWeight="Bold" />
-                <TextBlock Text="{Binding BatteryStatus}" />
-
-                <TextBlock Text="Grid Status" FontWeight="Bold" />
-                <TextBlock Text="{Binding GridStatus}" />
-
-                <TextBlock Text="PV Power" FontWeight="Bold" />
-                <TextBlock Text="{Binding PvPower}" />
-
-                <TextBlock Text="Grid Power" FontWeight="Bold" />
-                <TextBlock Text="{Binding GridPower}" />
-
-                <TextBlock Text="EV Power" FontWeight="Bold" />
-                <TextBlock Text="{Binding EvPower}" />
-
-                <TextBlock Text="AC Power" FontWeight="Bold" />
-                <TextBlock Text="{Binding AcPower}" />
-
-                <TextBlock Text="Load Power" FontWeight="Bold" />
-                <TextBlock Text="{Binding LoadPower}" />
-
-                <TextBlock Text="Heat Pump Power" FontWeight="Bold" />
-                <TextBlock Text="{Binding HeatPumpPower}" />
-
-                <TextBlock Text="Battery Power" FontWeight="Bold" />
-                <TextBlock Text="{Binding BatteryPower}" />
-
-                <TextBlock Text="Station Card Totals (kWh)" FontWeight="Bold" Margin="0,8,0,0" />
-                <Grid ColumnDefinitions="2*,*,*" Margin="0,0,0,4">
-                    <TextBlock Grid.Column="0" Text="Card" FontWeight="Bold" />
-                    <TextBlock Grid.Column="1" Text="Today" FontWeight="Bold" />
-                    <TextBlock Grid.Column="2" Text="Yesterday" FontWeight="Bold" />
-                </Grid>
-                <ItemsControl ItemsSource="{Binding HistoricalStationCards}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid ColumnDefinitions="2*,*,*" Margin="0,0,0,2">
-                                <TextBlock Grid.Column="0" Text="{Binding CardKey}" />
-                                <TextBlock Grid.Column="1" Text="{Binding TodayKwh}" />
-                                <TextBlock Grid.Column="2" Text="{Binding YesterdayKwh}" />
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <TextBlock Text="Chart Data Today (raw)" FontWeight="Bold" Margin="0,8,0,0" />
-                <TextBox Text="{Binding TodayChartDataJson}" IsReadOnly="True" AcceptsReturn="True" Height="100" TextWrapping="Wrap" />
-
-                <TextBlock Text="Chart Data Yesterday (raw)" FontWeight="Bold" Margin="0,8,0,0" />
-                <TextBox Text="{Binding YesterdayChartDataJson}" IsReadOnly="True" AcceptsReturn="True" Height="100" TextWrapping="Wrap" />
-
-                <Button Content="Settings" Command="{Binding OpenSettingsCommand}" Width="120" />
-            </StackPanel>
-
-            <StackPanel Spacing="8" IsVisible="{Binding IsSettingsPageVisible}">
-                <TextBlock Text="Settings" FontWeight="Bold" />
-
-                <TextBlock Text="Active System" />
-                <ComboBox ItemsSource="{Binding Systems}"
-                          SelectedItem="{Binding SelectedSystem, Mode=TwoWay}"
-                          DisplayMemberBinding="{Binding SystemName}" />
-
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="Back" Command="{Binding BackToMainCommand}" Width="100" />
-                    <Button Content="Sign Out" Command="{Binding SignOutCommand}" Width="100" />
+                    <TextBlock Text="Placeholder: Element 2" Foreground="#AAAAAA" FontSize="20" />
                 </StackPanel>
-            </StackPanel>
 
-            <TextBlock Text="Status" FontWeight="Bold" />
-            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
-        </StackPanel>
-    </ScrollViewer>
+                <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Margin="0,28,0,0" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="20">
+                    <Border Grid.Row="0" Background="#101010" CornerRadius="6" Padding="16">
+                        <TextBlock Text="Placeholder: Element 3" Foreground="#DDDDDD" FontSize="22" />
+                    </Border>
+
+                    <Border Grid.Row="1" Background="#101010" CornerRadius="6" Padding="16">
+                        <TextBlock Text="Placeholder: Element 4" Foreground="#DDDDDD" FontSize="22" />
+                    </Border>
+
+                    <Border Grid.Row="2" Background="#101010" CornerRadius="6" Padding="16">
+                        <TextBlock Text="Placeholder: Element 5" Foreground="#DDDDDD" FontSize="22" />
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <views:SettingsView IsVisible="{Binding IsSettingsPageVisible}" />
+
+        <Border IsVisible="{Binding IsLoginPageVisible}"
+                Background="#AA000000"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
+            <Border Width="420"
+                    Padding="20"
+                    CornerRadius="8"
+                    Background="#111111"
+                    BorderBrush="#2E2E2E"
+                    BorderThickness="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Sign In" Foreground="#FFFFFF" FontWeight="Bold" FontSize="20" />
+
+                    <TextBlock Text="Username" Foreground="#CCCCCC" />
+                    <TextBox Text="{Binding Username, Mode=TwoWay}" Watermark="Username" />
+
+                    <TextBlock Text="Password" Foreground="#CCCCCC" />
+                    <TextBox Text="{Binding Password, Mode=TwoWay}" PasswordChar="*" Watermark="Password" />
+
+                    <CheckBox IsChecked="{Binding SavePassword, Mode=TwoWay}" Content="Save password" />
+
+                    <Button Content="Sign In" Command="{Binding SignInCommand}" Width="120" />
+
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="#CCCCCC" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
 </UserControl>
