@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LiveChartsCore;
@@ -29,6 +30,7 @@ namespace SigCompanion.ViewModels
         private AppSettings _settings;
         private CancellationTokenSource? _pollingCts;
         private bool _isAuthenticated;
+        private readonly DispatcherTimer _clockTimer;
 
         public MainViewModel()
         {
@@ -65,6 +67,11 @@ namespace SigCompanion.ViewModels
             openSettingsCommand = new RelayCommand(OpenSettings);
             backToMainCommand = new RelayCommand(BackToMain);
             signOutCommand = new AsyncRelayCommand(SignOutAsync);
+
+            _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _clockTimer.Tick += (_, _) => UpdateClock();
+            _clockTimer.Start();
+            UpdateClock();
 
             _ = InitializeAsync();
         }
@@ -216,6 +223,32 @@ namespace SigCompanion.ViewModels
         [ObservableProperty]
         private AppPage currentPage;
 
+        private bool showClock;
+        public bool ShowClock
+        {
+            get => showClock;
+            set
+            {
+                if (SetProperty(ref showClock, value))
+                {
+                    _settings.ShowClock = value;
+                    _settingsStore.Save(_settings);
+                }
+            }
+        }
+
+        private string currentTimeText = string.Empty;
+        public string CurrentTimeText
+        {
+            get => currentTimeText;
+            private set => SetProperty(ref currentTimeText, value);
+        }
+
+        private void UpdateClock()
+        {
+            CurrentTimeText = DateTime.Now.ToString("h:mm", CultureInfo.InvariantCulture);
+        }
+
         public bool IsLoginPageVisible => CurrentPage == AppPage.Login;
         public bool IsMainPageVisible => CurrentPage != AppPage.Settings;
         public bool IsSettingsPageVisible => CurrentPage == AppPage.Settings;
@@ -239,6 +272,7 @@ namespace SigCompanion.ViewModels
             Username = _settings.Username ?? string.Empty;
             Password = _settings.Password ?? string.Empty;
             SavePassword = _settings.SavePassword;
+            ShowClock = _settings.ShowClock;
 
             if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
             {
@@ -346,7 +380,7 @@ namespace SigCompanion.ViewModels
             StopPolling();
             _isAuthenticated = false;
 
-            _settings = new AppSettings();
+            _settings = new AppSettings { ShowClock = _settings.ShowClock };
             _settingsStore.Save(_settings);
 
             Username = string.Empty;
@@ -537,7 +571,8 @@ namespace SigCompanion.ViewModels
 
             // Each side of zero is drawn as non-stacked filled areas holding cumulative totals.
             // Series are ordered back to front, so the largest total is drawn first.
-            static ISeries CreateSeries(string name, string color, DateTime[] times, Func<DateTime, decimal> valueSelector, bool showInLegend = true)
+            // Tooltips show each series' underlying value (not the cumulative total) at that time.
+            ISeries CreateSeries(string name, string color, DateTime[] times, Func<DateTime, decimal> valueSelector, Func<DateTime, decimal> underlyingSelector, bool showInLegend = true)
             {
                 var baseColor = SKColor.Parse(color);
                 return new LineSeries<DateTimePoint>
@@ -548,7 +583,13 @@ namespace SigCompanion.ViewModels
                     Stroke = new SolidColorPaint(baseColor) { StrokeThickness = 1 },
                     GeometrySize = 0,
                     LineSmoothness = 0,
-                    IsVisibleAtLegend = showInLegend
+                    IsVisibleAtLegend = showInLegend,
+                    XToolTipLabelFormatter = point => new DateTime((long)point.Coordinate.SecondaryValue).ToString("h:mm tt", CultureInfo.InvariantCulture),
+                    YToolTipLabelFormatter = point =>
+                    {
+                        var time = new DateTime((long)point.Coordinate.SecondaryValue);
+                        return $"{Math.Abs(underlyingSelector(time)):0.##} kW";
+                    },
                 };
             }
 
@@ -562,13 +603,13 @@ namespace SigCompanion.ViewModels
 
             HistoricalPowerSeries =
             [
-                CreateSeries("Grid", "#CCCCCC", times, t => Sun(t) + BatteryDischarge(t) + GridImport(t)),
-                CreateSeries("Battery", "#3CC83C", times, t => Sun(t) + BatteryDischarge(t)),
-                CreateSeries("Solar", "#E0B800", times, t => Sun(t)),
-                CreateSeries("Grid", "#CCCCCC", times, t => BatteryCharge(t) + Home(t) + Evac(t) + GridExport(t), showInLegend: false),
-                CreateSeries("Home", "#2AA7E0", times, t => BatteryCharge(t) + Home(t) + Evac(t)),
-                CreateSeries("EVAC", "#E03C3C", times, t => BatteryCharge(t) + Evac(t)),
-                CreateSeries("Battery", "#3CC83C", times, t => BatteryCharge(t), showInLegend: false)
+                CreateSeries("Grid", "#CCCCCC", times, t => Sun(t) + BatteryDischarge(t) + GridImport(t), t => GridImport(t)),
+                CreateSeries("Battery", "#3CC83C", times, t => Sun(t) + BatteryDischarge(t), t => BatteryDischarge(t)),
+                CreateSeries("Solar", "#E0B800", times, t => Sun(t), t => Sun(t)),
+                CreateSeries("Grid", "#CCCCCC", times, t => BatteryCharge(t) + Home(t) + Evac(t) + GridExport(t), t => GridExport(t), showInLegend: false),
+                CreateSeries("Home", "#2AA7E0", times, t => BatteryCharge(t) + Home(t) + Evac(t), t => Home(t)),
+                CreateSeries("EVAC", "#E03C3C", times, t => BatteryCharge(t) + Evac(t), t => Evac(t)),
+                CreateSeries("Battery", "#3CC83C", times, t => BatteryCharge(t), t => BatteryCharge(t), showInLegend: false)
             ];
 
             HistoricalXAxes =

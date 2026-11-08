@@ -20,6 +20,7 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
                     </StackPanel>
+                    <ToggleSwitch Content="Show clock" Foreground="#FFFFFF" IsChecked="{Binding ShowClock, Mode=TwoWay}" />
                     <TextBlock Text="More settings content will be added here." Foreground="#9C9C9C" FontSize="16" />
                 </StackPanel>
             </Border>

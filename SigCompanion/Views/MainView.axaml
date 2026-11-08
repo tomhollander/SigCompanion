@@ -16,6 +16,9 @@
     <Grid Background="#000000">
         <Border IsVisible="{Binding IsMainPageVisible}" Background="#000000">
             <Grid>
+                <Image Source="/Assets/app_logo.png" HorizontalAlignment="Center" VerticalAlignment="Top" Height="15" Opacity="0.8" />
+                <TextBlock Text="{Binding CurrentTimeText}" IsVisible="{Binding ShowClock}" Foreground="#808080" FontSize="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4,10,0,0" />
+
                 <!-- 1. Large landscape (1000x800 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargeLandscapeLayout" IsVisible="False" Margin="12,48,12,12">
                     <Grid Width="1000" Height="800" ColumnDefinitions="Auto, *" ColumnSpacing="24">
@@ -31,9 +34,9 @@
                     </Grid>
                 </Viewbox>
 
-                <!-- 2. Large portrait (1000x800 shared reference, scaled to fit) -->
+                <!-- 2. Large portrait (1000x700 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargePortraitLayout" IsVisible="False" Margin="12,48,12,12">
-                    <Grid Width="800" Height="1000" RowDefinitions="4*,3*,3*" RowSpacing="16">
+                    <Grid Width="700" Height="1000" RowDefinitions="4*,3*,3*" RowSpacing="16">
                         <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="16">
                             <views:GaugePart Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <views:FlowPart Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -112,7 +115,7 @@
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="Sign In" Foreground="#FFFFFF" FontWeight="Bold" FontSize="20" />
+                    <TextBlock Text="Sign In with your MySigen Account" Foreground="#FFFFFF" FontWeight="Bold" FontSize="20" />
 
                     <TextBlock Text="Username" Foreground="#CCCCCC" />
                     <TextBox Text="{Binding Username, Mode=TwoWay}" Watermark="Username" />
@@ -122,7 +125,7 @@
 
                     <CheckBox IsChecked="{Binding SavePassword, Mode=TwoWay}" Content="Save password" />
 
-                    <Button Content="Sign In" Command="{Binding SignInCommand}" Width="120" />
+                    <Button Content="Sign In" HorizontalContentAlignment="Center" Command="{Binding SignInCommand}" Width="120" />
 
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#CCCCCC" TextWrapping="Wrap" />
                 </StackPanel>
