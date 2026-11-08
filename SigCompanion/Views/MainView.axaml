@@ -18,8 +18,8 @@
             <Grid>
                 <!-- 1. Large landscape (1000x800 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargeLandscapeLayout" IsVisible="False" Margin="12,48,12,12">
-                    <Grid Width="1000" Height="800" ColumnDefinitions="1.1*,1*" ColumnSpacing="24">
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="28">
+                    <Grid Width="1000" Height="800" ColumnDefinitions="Auto, *" ColumnSpacing="24">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Top" HorizontalAlignment="Center" Spacing="28">
                             <views:GaugePart />
                             <views:FlowPart />
                         </StackPanel>
@@ -33,7 +33,7 @@
 
                 <!-- 2. Large portrait (1000x800 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargePortraitLayout" IsVisible="False" Margin="12,48,12,12">
-                    <Grid Width="1000" Height="800" RowDefinitions="4*,3*,3*" RowSpacing="16">
+                    <Grid Width="800" Height="1000" RowDefinitions="4*,3*,3*" RowSpacing="16">
                         <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="16">
                             <views:GaugePart Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <views:FlowPart Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -112,7 +112,7 @@
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="Sign In" 
+                    <TextBlock Text="Sign In" Foreground="#FFFFFF" FontWeight="Bold" FontSize="20" />
 
                     <TextBlock Text="Username" Foreground="#CCCCCC" />
                     <TextBox Text="{Binding Username, Mode=TwoWay}" Watermark="Username" />

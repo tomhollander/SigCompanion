@@ -20,7 +20,7 @@
                    IsVisible="{Binding IsGridDisconnected}" />
 
             <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                <Image Source="/Assets/icon_battery.png" Width="24" Height="24" />
+                <Image Source="/Assets/icon_battery.png" Width="30" Height="30" />
                 <TextBlock Text="{Binding BatterySoc}" Foreground="#FFFFFF" FontSize="48" FontWeight="SemiBold" />
             </StackPanel>
         </StackPanel>

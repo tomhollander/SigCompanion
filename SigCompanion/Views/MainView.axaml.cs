@@ -9,7 +9,7 @@ namespace SigCompanion.Views
     public partial class MainView : UserControl
     {
         // Width below which the phone (two-page) layouts are used.
-        private const double PhoneWidthThreshold = 600;
+        private const double PhoneWidthThreshold = 500;
 
         // Horizontal distance (in DIPs) a pointer must travel to count as a swipe.
         private const double SwipeThreshold = 50;
@@ -36,7 +36,7 @@ namespace SigCompanion.Views
             }
 
             bool isLandscape = width >= height;
-            bool isPhone = width < PhoneWidthThreshold;
+            bool isPhone = isLandscape ? (height < PhoneWidthThreshold) : (width < PhoneWidthThreshold);
 
             LargeLandscapeLayout.IsVisible = !isPhone && isLandscape;
             LargePortraitLayout.IsVisible = !isPhone && !isLandscape;

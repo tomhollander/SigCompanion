@@ -290,16 +290,21 @@ public sealed class SigenApiClient
     {
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        // Check the code before typed deserialization: rate-limit responses return data: {},
+        // which cannot be deserialized into types such as string.
+        if (document.RootElement.TryGetProperty("code", out var codeElement)
+            && codeElement.ValueKind == JsonValueKind.Number
+            && codeElement.GetInt32() == SigenRateLimitException.RateLimitCode)
+        {
+            throw new SigenRateLimitException();
+        }
+
         var envelope = document.RootElement.Deserialize<SigenApiEnvelope<T>>();
 
         if (envelope is null)
         {
             throw new InvalidOperationException("Sigen API returned an invalid response.");
-        }
-
-        if (envelope.Code == SigenRateLimitException.RateLimitCode)
-        {
-            throw new SigenRateLimitException();
         }
 
         return envelope;
