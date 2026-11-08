@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SigCompanion.Controls"
+             xmlns:vm="using:SigCompanion.ViewModels"
+             x:Class="SigCompanion.Views.GaugePart"
+             x:DataType="vm:MainViewModel">
+    <Grid Width="280" Height="280">
+        <controls:BatteryGaugeControl StateOfCharge="{Binding BatterySocValue}" IsGridConnected="{Binding IsGridConnected}" BatteryPower="{Binding PowerFlows.BatteryPower}" />
+
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+            <Image Source="/Assets/grid_disconnected.png"
+                   Width="34"
+                   Height="34"
+                   HorizontalAlignment="Center"
+                   IsVisible="{Binding IsGridDisconnected}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                <Image Source="/Assets/icon_battery.png" Width="24" Height="24" />
+                <TextBlock Text="{Binding BatterySoc}" Foreground="#FFFFFF" FontSize="40" FontWeight="SemiBold" />
+            </StackPanel>
+        </StackPanel>
+
+        <Image Source="/Assets/icon_grid_export_yellow.png" Width="40" Height="40" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,8,0,0" IsVisible="{Binding IsExportingToGrid}" />
+        <Image Source="/Assets/icon_battery_import.png" Width="40" Height="40" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,8,0" IsVisible="{Binding IsBatteryCharging}" />
+        <Image Source="/Assets/icon_grid_export.png" Width="40" Height="40" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8,0,0,8" IsVisible="{Binding IsImportingFromGrid}" />
+        <Image Source="/Assets/icon_battery_export.png" Width="40" Height="40" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,8,8" IsVisible="{Binding IsBatteryDischarging}" />
+    </Grid>
+</UserControl>

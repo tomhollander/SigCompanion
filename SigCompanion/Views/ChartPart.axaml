@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SigCompanion.ViewModels"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             x:Class="SigCompanion.Views.ChartPart"
+             x:DataType="vm:MainViewModel">
+    <lvc:CartesianChart x:Name="HistoricalPowerChart"
+                        LegendPosition="Right"
+                        MinHeight="180" />
+</UserControl>

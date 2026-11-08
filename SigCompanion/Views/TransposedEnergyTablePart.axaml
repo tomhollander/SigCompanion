@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SigCompanion.ViewModels"
+             x:Class="SigCompanion.Views.TransposedEnergyTablePart"
+             x:DataType="vm:MainViewModel">
+    <Grid ColumnDefinitions="Auto,*,*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+        <TextBlock Grid.Column="0" Grid.Row="0" Text="kWh" Foreground="#AAAAAA" FontSize="16" VerticalAlignment="Center" />
+
+        <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Image Source="/Assets/icon_home.png" Width="22" Height="22" />
+            <TextBlock Text="Home" Foreground="#AAAAAA" FontSize="16" />
+        </StackPanel>
+        <StackPanel Grid.Column="2" Grid.Row="0" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Image Source="/Assets/icon_solar.png" Width="22" Height="22" />
+            <TextBlock Text="Solar" Foreground="#AAAAAA" FontSize="16" />
+        </StackPanel>
+        <StackPanel Grid.Column="3" Grid.Row="0" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Image Source="/Assets/icon_grid.png" Width="22" Height="22" />
+            <TextBlock Text="Grid" Foreground="#AAAAAA" FontSize="16" />
+        </StackPanel>
+        <StackPanel Grid.Column="4" Grid.Row="0" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Image Source="/Assets/icon_battery.png" Width="22" Height="22" />
+            <TextBlock Text="Battery" Foreground="#AAAAAA" FontSize="16" />
+        </StackPanel>
+
+        <TextBlock Grid.Column="0" Grid.Row="1" Text="Yesterday" Foreground="#AAAAAA" FontSize="16" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding HomeYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#2AA7E0" FontSize="32" HorizontalAlignment="Center" Opacity="0.8" />
+        <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding SolarYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#E0B800" FontSize="32" HorizontalAlignment="Center" Opacity="0.8" />
+        <StackPanel Grid.Column="3" Grid.Row="1" Spacing="2" HorizontalAlignment="Center" Opacity="0.8">
+            <TextBlock Text="{Binding GridExportYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#CCCCCC" FontSize="22" HorizontalAlignment="Center" IsVisible="{Binding IsYesterdayGridExportVisible}" />
+            <TextBlock Text="{Binding GridImportYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#CCCCCC" FontSize="22" HorizontalAlignment="Center" />
+        </StackPanel>
+        <StackPanel Grid.Column="4" Grid.Row="1" Spacing="2" HorizontalAlignment="Center" Opacity="0.8">
+            <TextBlock Text="{Binding BatteryExportYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#3CC83C" FontSize="22" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding BatteryImportYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#3CC83C" FontSize="22" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <TextBlock Grid.Column="0" Grid.Row="2" Text="Today" Foreground="#AAAAAA" FontSize="16" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding HomeTodayKwh, StringFormat='{}{0:0}'}" Foreground="#2AA7E0" FontSize="32" HorizontalAlignment="Center" />
+        <TextBlock Grid.Column="2" Grid.Row="2" Text="{Binding SolarTodayKwh, StringFormat='{}{0:0}'}" Foreground="#E0B800" FontSize="32" HorizontalAlignment="Center" />
+        <StackPanel Grid.Column="3" Grid.Row="2" Spacing="2" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding GridExportTodayKwh, StringFormat='{}{0:0}'}" Foreground="#FFFFFF" FontSize="22" HorizontalAlignment="Center" IsVisible="{Binding IsTodayGridExportVisible}" />
+            <TextBlock Text="{Binding GridImportTodayKwh, StringFormat='{}{0:0}'}" Foreground="#FFFFFF" FontSize="22" HorizontalAlignment="Center" />
+        </StackPanel>
+        <StackPanel Grid.Column="4" Grid.Row="2" Spacing="2" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding BatteryExportTodayKwh, StringFormat='{}{0:0}'}" Foreground="#3CC83C" FontSize="22" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding BatteryImportTodayKwh, StringFormat='{}{0:0}'}" Foreground="#3CC83C" FontSize="22" HorizontalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</UserControl>
