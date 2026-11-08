@@ -4,12 +4,17 @@
              xmlns:vm="using:SigCompanion.ViewModels"
              x:Class="SigCompanion.Views.FlowPart"
              x:DataType="vm:MainViewModel">
+    <UserControl.Styles>
+        <Style Selector="TextBlock">
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </UserControl.Styles>
     <Grid Width="250" Height="210" HorizontalAlignment="Center" VerticalAlignment="Top">
         <Image Source="/Assets/flow-background.png" Width="170" Height="145" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
         <controls:PowerFlowDiagram Width="170" Height="145" HorizontalAlignment="Center" VerticalAlignment="Center" Flows="{Binding PowerFlows}" />
-        <TextBlock Text="{Binding FlowSolarText}" Foreground="#E0B800" FontSize="32" HorizontalAlignment="Left" VerticalAlignment="Top" />
-        <TextBlock Text="{Binding FlowGridText}" Foreground="#CCCCCC" FontSize="32" HorizontalAlignment="Right" VerticalAlignment="Top" />
-        <TextBlock Text="{Binding FlowBatteryText}" Foreground="#3CC83C" FontSize="32" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
-        <TextBlock Text="{Binding FlowHomeText}" Foreground="#2AA7E0" FontSize="32" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+        <TextBlock Text="{Binding FlowSolarText}" Foreground="#FFC400" FontSize="42" HorizontalAlignment="Left" VerticalAlignment="Top" />
+        <TextBlock Text="{Binding FlowGridText}" Foreground="#FFFFFF" FontSize="42" HorizontalAlignment="Right" VerticalAlignment="Top" />
+        <TextBlock Text="{Binding FlowBatteryText}" Foreground="#3CC83C" FontSize="42" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+        <TextBlock Text="{Binding FlowHomeText}" Foreground="#2AA7E0" FontSize="42" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
     </Grid>
 </UserControl>

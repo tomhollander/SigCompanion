@@ -297,6 +297,11 @@ public sealed class SigenApiClient
             throw new InvalidOperationException("Sigen API returned an invalid response.");
         }
 
+        if (envelope.Code == SigenRateLimitException.RateLimitCode)
+        {
+            throw new SigenRateLimitException();
+        }
+
         return envelope;
     }
 

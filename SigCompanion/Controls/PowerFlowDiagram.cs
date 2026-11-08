@@ -18,7 +18,7 @@ public sealed class PowerFlowDiagram : Control
     private const double NodeInsetDegrees = 14;
     private const double NodeInsetFraction = 0.12;
     private const double LabelOffset = 14;
-    private const double LabelFontSize = 13;
+    private const double LabelFontSize = 16;
     private const int ArcSegments = 32;
     private const double FlowSpeed = 40;
 

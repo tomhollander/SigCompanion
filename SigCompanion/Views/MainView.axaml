@@ -16,31 +16,29 @@
     <Grid Background="#000000">
         <Border IsVisible="{Binding IsMainPageVisible}" Background="#000000">
             <Grid>
-                <!-- 1. Large landscape (1200x700 reference, scaled to fit) -->
+                <!-- 1. Large landscape (1000x800 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargeLandscapeLayout" IsVisible="False" Margin="12,48,12,12">
-                    <Grid Width="1200" Height="700" ColumnDefinitions="1.1*,1*" ColumnSpacing="24">
+                    <Grid Width="1000" Height="800" ColumnDefinitions="1.1*,1*" ColumnSpacing="24">
                         <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="28">
                             <views:GaugePart />
                             <views:FlowPart />
                         </StackPanel>
 
                         <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="12">
-                            <views:EnergyTablePart Grid.Row="0" />
+                            <views:EnergyTablePart Grid.Row="0" HorizontalAlignment="Center" />
                             <views:ChartPart Grid.Row="1" />
                         </Grid>
                     </Grid>
                 </Viewbox>
 
-                <!-- 2. Large portrait (900x1100 reference) -->
+                <!-- 2. Large portrait (1000x800 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargePortraitLayout" IsVisible="False" Margin="12,48,12,12">
-                    <Grid Width="900" Height="1100" RowDefinitions="Auto,*,*" RowSpacing="16">
-                        <Grid Grid.Row="0" ColumnDefinitions="*,*">
-                            <views:GaugePart Grid.Column="0" HorizontalAlignment="Center" />
-                            <views:FlowPart Grid.Column="1" HorizontalAlignment="Center" />
+                    <Grid Width="1000" Height="800" RowDefinitions="4*,3*,3*" RowSpacing="16">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="16">
+                            <views:GaugePart Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <views:FlowPart Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Grid>
-                        <Viewbox Grid.Row="1" Stretch="Uniform">
-                            <views:TransposedEnergyTablePart />
-                        </Viewbox>
+                        <views:TransposedEnergyTablePart Grid.Row="1" />
                         <views:ChartPart Grid.Row="2" />
                     </Grid>
                 </Viewbox>
@@ -110,10 +108,11 @@
                     Background="#111111"
                     BorderBrush="#2E2E2E"
                     BorderThickness="1"
+                    Margin="0,24,0,0"
                     HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
+                    VerticalAlignment="Top">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="Sign In" Foreground="#FFFFFF" FontWeight="Bold" FontSize="20" />
+                    <TextBlock Text="Sign In" 
 
                     <TextBlock Text="Username" Foreground="#CCCCCC" />
                     <TextBox Text="{Binding Username, Mode=TwoWay}" Watermark="Username" />

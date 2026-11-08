@@ -301,6 +301,13 @@ namespace SigCompanion.ViewModels
                 CurrentPage = AppPage.Main;
                 StatusMessage = "Signed in.";
             }
+            catch (SigenRateLimitException)
+            {
+                _isAuthenticated = false;
+                StopPolling();
+                CurrentPage = AppPage.Login;
+                StatusMessage = "The Sigenergy API is rate-limiting requests. Please try again in a few minutes.";
+            }
             catch (Exception ex)
             {
                 _isAuthenticated = false;

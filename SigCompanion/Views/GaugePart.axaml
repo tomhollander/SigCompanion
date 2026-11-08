@@ -4,6 +4,11 @@
              xmlns:vm="using:SigCompanion.ViewModels"
              x:Class="SigCompanion.Views.GaugePart"
              x:DataType="vm:MainViewModel">
+    <UserControl.Styles>
+        <Style Selector="TextBlock">
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </UserControl.Styles>
     <Grid Width="280" Height="280">
         <controls:BatteryGaugeControl StateOfCharge="{Binding BatterySocValue}" IsGridConnected="{Binding IsGridConnected}" BatteryPower="{Binding PowerFlows.BatteryPower}" />
 
@@ -16,7 +21,7 @@
 
             <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                 <Image Source="/Assets/icon_battery.png" Width="24" Height="24" />
-                <TextBlock Text="{Binding BatterySoc}" Foreground="#FFFFFF" FontSize="40" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding BatterySoc}" Foreground="#FFFFFF" FontSize="48" FontWeight="SemiBold" />
             </StackPanel>
         </StackPanel>
 

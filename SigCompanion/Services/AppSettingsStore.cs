@@ -35,13 +35,16 @@ public sealed class AppSettingsStore
 
         try
         {
-            var protectedBytes = File.ReadAllBytes(_settingsPath);
-            if (protectedBytes.Length == 0)
+            var fileBytes = File.ReadAllBytes(_settingsPath);
+            if (fileBytes.Length == 0)
             {
                 return new AppSettings();
             }
 
-            var bytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
+            var bytes = OperatingSystem.IsWindows()
+                ? ProtectedData.Unprotect(fileBytes, null, DataProtectionScope.CurrentUser)
+                : DecryptFallback(fileBytes);
+
             var json = Encoding.UTF8.GetString(bytes);
             return JsonSerializer.Deserialize<AppSettings>(json, SerializerOptions) ?? new AppSettings();
         }
@@ -57,7 +60,53 @@ public sealed class AppSettingsStore
 
         var json = JsonSerializer.Serialize(settings, SerializerOptions);
         var bytes = Encoding.UTF8.GetBytes(json);
-        var protectedBytes = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
-        File.WriteAllBytes(_settingsPath, protectedBytes);
+
+        // DPAPI is Windows-only; other platforms use AES-GCM with a key embedded in the app.
+        var fileBytes = OperatingSystem.IsWindows()
+            ? ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser)
+            : EncryptFallback(bytes);
+
+        File.WriteAllBytes(_settingsPath, fileBytes);
+    }
+
+    // Obfuscation only: the key ships with the app, so this deters casual reading of the file
+    // but does not protect against anyone who has the binary or source.
+    private static readonly byte[] FallbackKey =
+        SHA256.HashData(Encoding.UTF8.GetBytes("SigCompanion-settings-obfuscation-v1"));
+
+    private const int NonceSize = 12;
+    private const int TagSize = 16;
+
+    private static byte[] EncryptFallback(byte[] plainBytes)
+    {
+        var nonce = RandomNumberGenerator.GetBytes(NonceSize);
+        var tag = new byte[TagSize];
+        var cipherBytes = new byte[plainBytes.Length];
+
+        using var aes = new AesGcm(FallbackKey, TagSize);
+        aes.Encrypt(nonce, plainBytes, cipherBytes, tag);
+
+        var result = new byte[NonceSize + TagSize + cipherBytes.Length];
+        nonce.CopyTo(result, 0);
+        tag.CopyTo(result, NonceSize);
+        cipherBytes.CopyTo(result, NonceSize + TagSize);
+        return result;
+    }
+
+    private static byte[] DecryptFallback(byte[] fileBytes)
+    {
+        if (fileBytes.Length < NonceSize + TagSize)
+        {
+            throw new InvalidDataException("Settings file is too short.");
+        }
+
+        var nonce = fileBytes[..NonceSize];
+        var tag = fileBytes[NonceSize..(NonceSize + TagSize)];
+        var cipherBytes = fileBytes[(NonceSize + TagSize)..];
+        var plainBytes = new byte[cipherBytes.Length];
+
+        using var aes = new AesGcm(FallbackKey, TagSize);
+        aes.Decrypt(nonce, cipherBytes, tag, plainBytes);
+        return plainBytes;
     }
 }
