@@ -6,7 +6,7 @@
         xmlns:views="using:SigCompanion.Views"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="SigCompanion.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="SigCompanion">
+        Icon="/Assets/sigenstor.png"
+        Title="Sig Companion">
         <views:MainView />
 </Window>

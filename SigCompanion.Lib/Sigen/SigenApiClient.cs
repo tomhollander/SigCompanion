@@ -186,6 +186,25 @@ public sealed class SigenApiClient
         return NormalizeJsonDataEnvelopeToString(envelope);
     }
 
+    public async Task<SigenApiEnvelope<string>> GetSystemDayHistoryAsync(
+        string systemId,
+        string level,
+        DateOnly date,
+        CancellationToken cancellationToken = default)
+    {
+        var path = $"/openapi/systems/{Uri.EscapeDataString(Require(systemId, nameof(systemId)))}/history";
+
+        var query = new Dictionary<string, string>
+        {
+            ["level"] = Require(level, nameof(level)),
+            ["date"] = date.ToString("yyyy-MM-dd"),
+        };
+
+        var response = await SendAuthorizedAsync(HttpMethod.Get, path, query, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var envelope = await DeserializeEnvelopeAsync<JsonElement>(response, cancellationToken).ConfigureAwait(false);
+        return NormalizeJsonDataEnvelopeToString(envelope);
+    }
+
     public async Task<SigenApiEnvelope<string>> GetDeviceRealtimeDataAsync(
         string systemId,
         string serialNumber,

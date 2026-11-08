@@ -98,8 +98,10 @@ public sealed class SigenUiApi
 
         var todayTask = GetHistoricalV1DayDataAsync(requiredSystemId, todayDate, DefaultCachePeriod, cancellationToken);
         var yesterdayTask = GetHistoricalV1DayDataAsync(requiredSystemId, yesterdayDate, HistoricalYesterdayCachePeriod, cancellationToken);
+        var todaySocTask = GetDayStateOfChargeAsync(requiredSystemId, todayDate, DefaultCachePeriod, cancellationToken);
+        var yesterdaySocTask = GetDayStateOfChargeAsync(requiredSystemId, yesterdayDate, HistoricalYesterdayCachePeriod, cancellationToken);
 
-        await Task.WhenAll(todayTask, yesterdayTask).ConfigureAwait(false);
+        await Task.WhenAll(todayTask, yesterdayTask, todaySocTask, yesterdaySocTask).ConfigureAwait(false);
 
         var today = await todayTask.ConfigureAwait(false);
         var yesterday = await yesterdayTask.ConfigureAwait(false);
@@ -113,7 +115,39 @@ public sealed class SigenUiApi
             StationCards = rows,
             TodayChartData = SerializeToJsonElement(today.ChartData),
             YesterdayChartData = SerializeToJsonElement(yesterday.ChartData),
+            TodayStateOfCharge = await todaySocTask.ConfigureAwait(false),
+            YesterdayStateOfCharge = await yesterdaySocTask.ConfigureAwait(false),
         };
+    }
+
+    private async Task<IReadOnlyList<SigenStateOfChargePoint>> GetDayStateOfChargeAsync(
+        string systemId,
+        DateOnly date,
+        TimeSpan cachePeriod,
+        CancellationToken cancellationToken)
+    {
+        var envelope = await _cachedApiClient
+            .GetSystemDayHistoryAsync(systemId, HistoricalLevelDay, date, cachePeriod, cancellationToken)
+            .ConfigureAwait(false);
+
+        ValidateEnvelope(envelope, "Failed to get battery state of charge history.");
+
+        if (string.IsNullOrWhiteSpace(envelope.Data))
+        {
+            return [];
+        }
+
+        var data = JsonSerializer.Deserialize<SigenHistoryDayData>(envelope.Data);
+        return (data?.ItemList ?? [])
+            .Where(item => item.BatSoc.HasValue
+                && DateTime.TryParseExact(item.DataTime, "yyyyMMdd HH:mm", System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out _))
+            .Select(item => new SigenStateOfChargePoint
+            {
+                Time = DateTime.ParseExact(item.DataTime!, "yyyyMMdd HH:mm", System.Globalization.CultureInfo.InvariantCulture),
+                StateOfCharge = item.BatSoc!.Value,
+            })
+            .ToArray();
     }
 
     private async Task<IReadOnlyList<SigenSystemInfo>> GetSystemListDataAsync(CancellationToken cancellationToken)

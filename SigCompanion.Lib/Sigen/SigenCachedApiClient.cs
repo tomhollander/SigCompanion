@@ -105,6 +105,18 @@ public sealed class SigenCachedApiClient
             token => _innerClient.GetSystemHistoricalDataV1Async(systemId, level, date, token),
             cancellationToken);
 
+    public Task<SigenApiEnvelope<string>> GetSystemDayHistoryAsync(
+        string systemId,
+        string level,
+        DateOnly date,
+        TimeSpan cachePeriod,
+        CancellationToken cancellationToken = default) =>
+        GetOrSetAsync(
+            $"system:{systemId}:history:day:{level}:{date:yyyy-MM-dd}",
+            cachePeriod,
+            token => _innerClient.GetSystemDayHistoryAsync(systemId, level, date, token),
+            cancellationToken);
+
     public Task<SigenApiEnvelope<string>> GetDeviceRealtimeDataAsync(
         string systemId,
         string serialNumber,

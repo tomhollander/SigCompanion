@@ -9,6 +9,8 @@ public sealed class SigenHistoricalComparisonSnapshot
     public required IReadOnlyList<SigenStationCardComparisonRow> StationCards { get; init; }
     public required JsonElement TodayChartData { get; init; }
     public required JsonElement YesterdayChartData { get; init; }
+    public IReadOnlyList<SigenStateOfChargePoint> TodayStateOfCharge { get; init; } = [];
+    public IReadOnlyList<SigenStateOfChargePoint> YesterdayStateOfCharge { get; init; } = [];
 }
 
 public sealed class SigenStationCardComparisonRow

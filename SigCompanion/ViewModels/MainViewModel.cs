@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
@@ -478,78 +479,96 @@ namespace SigCompanion.ViewModels
 
         private async Task PollBatteryStatusLoopAsync(string systemId, CancellationToken cancellationToken)
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                while (!cancellationToken.IsCancellationRequested)
+                try
                 {
-                    var batteryStatusTask = _sigenUiApi.GetBatteryStatusAsync(systemId, cancellationToken);
-                    var powerFlowTask = _sigenUiApi.GetPowerFlowSnapshotAsync(systemId, cancellationToken);
-                    var historicalTask = _sigenUiApi.GetHistoricalDayComparisonAsync(systemId, cancellationToken);
+                    await RefreshDashboardAsync(systemId, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Dashboard poll failed: {ex}");
+                    StatusMessage = ex.Message;
+                }
 
-                    await Task.WhenAll(batteryStatusTask, powerFlowTask, historicalTask);
-
-                    var snapshot = await batteryStatusTask;
-                    var powerFlow = await powerFlowTask;
-                    var historical = await historicalTask;
-
-                    BatterySocValue = (double)snapshot.BatteryStateOfCharge;
-                    IsGridConnected = snapshot.IsGridConnected;
-                    BatterySoc = $"{snapshot.BatteryStateOfCharge:0}%";
-                    BatteryStatus = snapshot.BatteryStatus.ToString();
-                    GridStatus = snapshot.IsGridConnected ? "Connected" : "Disconnected";
-
-                    PvPower = FormatPower(powerFlow.PvPower);
-                    GridPower = FormatPower(powerFlow.GridPower);
-                    EvPower = FormatPower(powerFlow.EvPower);
-                    AcPower = FormatPower(powerFlow.AcPower);
-                    LoadPower = FormatPower(powerFlow.LoadPower);
-                    HeatPumpPower = FormatPower(powerFlow.HeatPumpPower);
-                    BatteryPower = FormatPower(powerFlow.BatteryPower);
-
-                    FlowSolarText = FormatFlowValue(powerFlow.PvPower);
-                    FlowGridText = FormatFlowValue(-powerFlow.GridPower);
-                    FlowHomeText = FormatFlowValue(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower);
-                    FlowBatteryText = FormatFlowValue(Math.Abs(powerFlow.BatteryPower));
-
-                    PowerFlows = new PowerFlowAllocation
-                    {
-                        SolarPower = (double)powerFlow.PvPower,
-                        HomePower = (double)(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower),
-                        GridPower = -(double)powerFlow.GridPower,
-                        BatteryPower = -(double)powerFlow.BatteryPower
-                    };
-
-                    // Raw API signs: gridPower > 0 = export (Grid tile shows -GridPower); batteryPower > 0 = charging, < 0 = discharging.
-                    IsExportingToGrid = powerFlow.GridPower > 0;
-                    IsImportingFromGrid = powerFlow.GridPower < 0;
-                    IsBatteryCharging = powerFlow.BatteryPower > 0;
-                    IsBatteryDischarging = powerFlow.BatteryPower < 0;
-
-                    HistoricalStationCards.Clear();
-                    foreach (var row in historical.StationCards)
-                    {
-                        HistoricalStationCards.Add(row);
-                    }
-
-                    UpdateEnergyTotals(historical.StationCards);
-
-                    TodayChartDataJson = JsonSerializer.Serialize(historical.TodayChartData, new JsonSerializerOptions { WriteIndented = false });
-                    YesterdayChartDataJson = JsonSerializer.Serialize(historical.YesterdayChartData, new JsonSerializerOptions { WriteIndented = false });
-                    UpdateHistoricalPowerChart(historical.YesterdayChartData, historical.TodayChartData);
-
+                try
+                {
                     await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
                 }
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = ex.Message;
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
             }
         }
 
-        private void UpdateHistoricalPowerChart(JsonElement yesterdayChartData, JsonElement todayChartData)
+        private async Task RefreshDashboardAsync(string systemId, CancellationToken cancellationToken)
+        {
+            var batteryStatusTask = _sigenUiApi.GetBatteryStatusAsync(systemId, cancellationToken);
+            var powerFlowTask = _sigenUiApi.GetPowerFlowSnapshotAsync(systemId, cancellationToken);
+            var historicalTask = _sigenUiApi.GetHistoricalDayComparisonAsync(systemId, cancellationToken);
+
+            await Task.WhenAll(batteryStatusTask, powerFlowTask, historicalTask);
+
+            var snapshot = await batteryStatusTask;
+            var powerFlow = await powerFlowTask;
+            var historical = await historicalTask;
+
+            BatterySocValue = (double)snapshot.BatteryStateOfCharge;
+            IsGridConnected = snapshot.IsGridConnected;
+            BatterySoc = $"{snapshot.BatteryStateOfCharge:0}%";
+            BatteryStatus = snapshot.BatteryStatus.ToString();
+            GridStatus = snapshot.IsGridConnected ? "Connected" : "Disconnected";
+
+            PvPower = FormatPower(powerFlow.PvPower);
+            GridPower = FormatPower(powerFlow.GridPower);
+            EvPower = FormatPower(powerFlow.EvPower);
+            AcPower = FormatPower(powerFlow.AcPower);
+            LoadPower = FormatPower(powerFlow.LoadPower);
+            HeatPumpPower = FormatPower(powerFlow.HeatPumpPower);
+            BatteryPower = FormatPower(powerFlow.BatteryPower);
+
+            FlowSolarText = FormatFlowValue(powerFlow.PvPower);
+            FlowGridText = FormatFlowValue(-powerFlow.GridPower);
+            FlowHomeText = FormatFlowValue(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower);
+            FlowBatteryText = FormatFlowValue(Math.Abs(powerFlow.BatteryPower));
+
+            PowerFlows = new PowerFlowAllocation
+            {
+                SolarPower = (double)powerFlow.PvPower,
+                HomePower = (double)(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower),
+                GridPower = -(double)powerFlow.GridPower,
+                BatteryPower = -(double)powerFlow.BatteryPower
+            };
+
+            // Raw API signs: gridPower > 0 = export (Grid tile shows -GridPower); batteryPower > 0 = charging, < 0 = discharging.
+            IsExportingToGrid = powerFlow.GridPower > 0;
+            IsImportingFromGrid = powerFlow.GridPower < 0;
+            IsBatteryCharging = powerFlow.BatteryPower > 0;
+            IsBatteryDischarging = powerFlow.BatteryPower < 0;
+
+            HistoricalStationCards.Clear();
+            foreach (var row in historical.StationCards)
+            {
+                HistoricalStationCards.Add(row);
+            }
+
+            UpdateEnergyTotals(historical.StationCards);
+
+            TodayChartDataJson = JsonSerializer.Serialize(historical.TodayChartData, new JsonSerializerOptions { WriteIndented = false });
+            YesterdayChartDataJson = JsonSerializer.Serialize(historical.YesterdayChartData, new JsonSerializerOptions { WriteIndented = false });
+            UpdateHistoricalPowerChart(historical.YesterdayChartData, historical.TodayChartData, historical.YesterdayStateOfCharge, historical.TodayStateOfCharge);
+        }
+
+        private void UpdateHistoricalPowerChart(
+            JsonElement yesterdayChartData,
+            JsonElement todayChartData,
+            IReadOnlyList<SigenStateOfChargePoint> yesterdaySoc,
+            IReadOnlyList<SigenStateOfChargePoint> todaySoc)
         {
             var charts = new[]
             {
@@ -569,6 +588,12 @@ namespace SigCompanion.ViewModels
                 .OrderBy(t => t)
                 .ToArray();
 
+            var socValues = yesterdaySoc.Concat(todaySoc)
+                .GroupBy(p => p.Time)
+                .Select(g => new KeyValuePair<DateTime, decimal>(g.Key, g.Last().StateOfCharge))
+                .OrderBy(p => p.Key)
+                .ToArray();
+
             // Each side of zero is drawn as non-stacked filled areas holding cumulative totals.
             // Series are ordered back to front, so the largest total is drawn first.
             // Tooltips show each series' underlying value (not the cumulative total) at that time.
@@ -584,6 +609,7 @@ namespace SigCompanion.ViewModels
                     GeometrySize = 0,
                     LineSmoothness = 0,
                     IsVisibleAtLegend = showInLegend,
+                    IsHoverable = showInLegend,
                     XToolTipLabelFormatter = point => new DateTime((long)point.Coordinate.SecondaryValue).ToString("h:mm tt", CultureInfo.InvariantCulture),
                     YToolTipLabelFormatter = point =>
                     {
@@ -609,8 +635,21 @@ namespace SigCompanion.ViewModels
                 CreateSeries("Grid", "#CCCCCC", times, t => BatteryCharge(t) + Home(t) + Evac(t) + GridExport(t), t => GridExport(t), showInLegend: false),
                 CreateSeries("Home", "#2AA7E0", times, t => BatteryCharge(t) + Home(t) + Evac(t), t => Home(t)),
                 CreateSeries("EVAC", "#E03C3C", times, t => BatteryCharge(t) + Evac(t), t => Evac(t)),
-                CreateSeries("Battery", "#3CC83C", times, t => BatteryCharge(t), t => BatteryCharge(t), showInLegend: false)
+                CreateSeries("Battery", "#3CC83C", times, t => BatteryCharge(t), t => BatteryCharge(t), showInLegend: false),
+                new LineSeries<DateTimePoint>
+                {
+                    Name = "SoC",
+                    Values = socValues.Select(p => new DateTimePoint(p.Key, (double)p.Value)).ToArray(),
+                    ScalesYAt = 1,
+                    Fill = null,
+                    Stroke = new SolidColorPaint(SKColor.Parse("#00D3D3")) { StrokeThickness = 2 },
+                    GeometrySize = 0,
+                    LineSmoothness = 0,
+                    XToolTipLabelFormatter = point => new DateTime((long)point.Coordinate.SecondaryValue).ToString("h:mm tt", CultureInfo.InvariantCulture),
+                    YToolTipLabelFormatter = point => $"{point.Coordinate.PrimaryValue:0.#}%",
+                },
             ];
+
 
             HistoricalXAxes =
             [
@@ -632,6 +671,15 @@ namespace SigCompanion.ViewModels
                 new Axis
                 {
                     Labeler = value => $"{Math.Abs(value):0} kW",
+                    LabelsPaint = new SolidColorPaint(SKColor.Parse("#AAAAAA"))
+                },
+                new Axis
+                {
+                    Position = LiveChartsCore.Measure.AxisPosition.End,
+                    MinLimit = 0,
+                    MaxLimit = 100,
+                    Labeler = value => $"{value:0}%",
+                    ShowSeparatorLines = false,
                     LabelsPaint = new SolidColorPaint(SKColor.Parse("#AAAAAA"))
                 }
             ];

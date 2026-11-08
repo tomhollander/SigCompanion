@@ -20,7 +20,7 @@
                 <TextBlock Text="{Binding CurrentTimeText}" IsVisible="{Binding ShowClock}" Foreground="#808080" FontSize="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4,10,0,0" />
 
                 <!-- 1. Large landscape (1000x800 shared reference, scaled to fit) -->
-                <Viewbox x:Name="LargeLandscapeLayout" IsVisible="False" Margin="12,48,12,12">
+                <Viewbox x:Name="LargeLandscapeLayout" IsVisible="False" Margin="12,24,12,12">
                     <Grid Width="1000" Height="800" ColumnDefinitions="Auto, *" ColumnSpacing="24">
                         <StackPanel Grid.Column="0" VerticalAlignment="Top" HorizontalAlignment="Center" Spacing="28">
                             <views:GaugePart />
@@ -35,7 +35,7 @@
                 </Viewbox>
 
                 <!-- 2. Large portrait (1000x700 shared reference, scaled to fit) -->
-                <Viewbox x:Name="LargePortraitLayout" IsVisible="False" Margin="12,48,12,12">
+                <Viewbox x:Name="LargePortraitLayout" IsVisible="False" Margin="12,24,12,12">
                     <Grid Width="700" Height="1000" RowDefinitions="4*,3*,3*" RowSpacing="16">
                         <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="16">
                             <views:GaugePart Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -47,7 +47,7 @@
                 </Viewbox>
 
                 <!-- 3. Phone landscape (800x480 reference, two swipeable pages) -->
-                <Viewbox x:Name="PhoneLandscapeLayout" IsVisible="False" Margin="8,48,8,8">
+                <Viewbox x:Name="PhoneLandscapeLayout" IsVisible="False" Margin="8,12,8,8">
                     <Grid Width="800" Height="480" Background="Transparent"
                           PointerPressed="OnPagerPointerPressed"
                           PointerReleased="OnPagerPointerReleased">
@@ -67,7 +67,7 @@
                 </Viewbox>
 
                 <!-- 4. Phone portrait (440x860 reference, two swipeable pages) -->
-                <Viewbox x:Name="PhonePortraitLayout" IsVisible="False" Margin="8,48,8,8">
+                <Viewbox x:Name="PhonePortraitLayout" IsVisible="False" Margin="8,12,8,8">
                     <Grid Width="440" Height="860" Background="Transparent"
                           PointerPressed="OnPagerPointerPressed"
                           PointerReleased="OnPagerPointerReleased">
@@ -105,7 +105,7 @@
                 Background="#AA000000"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch">
-            <Border Width="420"
+            <Border Width="380"
                     Padding="20"
                     CornerRadius="8"
                     Background="#111111"

@@ -5,6 +5,6 @@
              x:Class="SigCompanion.Views.ChartPart"
              x:DataType="vm:MainViewModel">
     <lvc:CartesianChart x:Name="HistoricalPowerChart"
-                        LegendPosition="Right"
+                        LegendPosition="Bottom"
                         MinHeight="180" />
 </UserControl>
