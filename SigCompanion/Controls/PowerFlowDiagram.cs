@@ -12,9 +12,9 @@ namespace SigCompanion.Controls;
 public sealed class PowerFlowDiagram : Control
 {
     private const double MinimumFlow = 0.1;
-    private const double StrokeThickness = 5;
-    private const double ArrowLength = 5;
-    private const double ArrowHalfWidth = 5;
+    private const double StrokeThickness = 9;
+    private const double ArrowLength = 9;
+    private const double ArrowHalfWidth = 9;
     private const double NodeInsetDegrees = 14;
     private const double NodeInsetFraction = 0.12;
     private const double LabelOffset = 14;

@@ -139,6 +139,18 @@ namespace SigCompanion.ViewModels
         private PowerFlowAllocation powerFlows;
 
         [ObservableProperty]
+        private bool isExportingToGrid;
+
+        [ObservableProperty]
+        private bool isImportingFromGrid;
+
+        [ObservableProperty]
+        private bool isBatteryCharging;
+
+        [ObservableProperty]
+        private bool isBatteryDischarging;
+
+        [ObservableProperty]
         private ObservableCollection<SigenStationCardComparisonRow> historicalStationCards;
 
         [ObservableProperty]
@@ -347,6 +359,10 @@ namespace SigCompanion.ViewModels
             LoadPower = "-";
             HeatPumpPower = "-";
             BatteryPower = "-";
+            IsExportingToGrid = false;
+            IsImportingFromGrid = false;
+            IsBatteryCharging = false;
+            IsBatteryDischarging = false;
             HistoricalStationCards.Clear();
             TodayChartDataJson = "-";
             YesterdayChartDataJson = "-";
@@ -461,6 +477,12 @@ namespace SigCompanion.ViewModels
                         GridPower = -(double)powerFlow.GridPower,
                         BatteryPower = -(double)powerFlow.BatteryPower
                     };
+
+                    // Raw API signs: gridPower > 0 = export (Grid tile shows -GridPower); batteryPower > 0 = charging, < 0 = discharging.
+                    IsExportingToGrid = powerFlow.GridPower > 0;
+                    IsImportingFromGrid = powerFlow.GridPower < 0;
+                    IsBatteryCharging = powerFlow.BatteryPower > 0;
+                    IsBatteryDischarging = powerFlow.BatteryPower < 0;
 
                     HistoricalStationCards.Clear();
                     foreach (var row in historical.StationCards)
