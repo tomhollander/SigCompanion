@@ -5,6 +5,7 @@
              xmlns:vm="using:SigCompanion.ViewModels"
              xmlns:views="using:SigCompanion.Views"
              xmlns:controls="using:SigCompanion.Controls"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SigCompanion.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -21,13 +22,14 @@
                         Width="36"
                         Height="36"
                         Padding="6"
+                        Background="Transparent"
                         Command="{Binding OpenSettingsCommand}">
                     <Image Source="/Assets/settings.png" Stretch="Uniform" />
                 </Button>
 
                 <StackPanel Grid.Column="0" Grid.Row="0" HorizontalAlignment="Center" Margin="0,28,0,0" Spacing="8">
-                    <Grid Width="360" Height="360">
-                        <controls:BatteryGaugeControl StateOfCharge="{Binding BatterySocValue}" IsGridConnected="{Binding IsGridConnected}" />
+                    <Grid Width="280" Height="280">
+                        <controls:BatteryGaugeControl StateOfCharge="{Binding BatterySocValue}" IsGridConnected="{Binding IsGridConnected}" BatteryPower="{Binding PowerFlows.BatteryPower}" />
 
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
                             <Image Source="/Assets/grid_disconnected.png"
@@ -38,26 +40,83 @@
 
                             <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                                 <Image Source="/Assets/icon_battery.png" Width="24" Height="24" />
-                                <TextBlock Text="{Binding BatterySoc}" Foreground="#FFFFFF" FontSize="44" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding BatterySoc}" Foreground="#FFFFFF" FontSize="40" FontWeight="SemiBold" />
                             </StackPanel>
                         </StackPanel>
                     </Grid>
 
-                    <TextBlock Text="Placeholder: Element 2" Foreground="#AAAAAA" FontSize="20" />
+                    <Grid Grid.Row="1" Width="250" Height="210" HorizontalAlignment="Center" VerticalAlignment="Top">
+                        <Image Source="/Assets/flow-background.png" Width="170" Height="145" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <controls:PowerFlowDiagram Width="170" Height="145" HorizontalAlignment="Center" VerticalAlignment="Center" Flows="{Binding PowerFlows}" />
+
+                        <TextBlock Text="{Binding FlowSolarText}" Foreground="#E0B800" FontSize="32" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                        <TextBlock Text="{Binding FlowGridText}" Foreground="#CCCCCC" FontSize="32" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                        <TextBlock Text="{Binding FlowBatteryText}" Foreground="#3CC83C" FontSize="32" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                        <TextBlock Text="{Binding FlowHomeText}" Foreground="#2AA7E0" FontSize="32" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+                    </Grid>
                 </StackPanel>
 
-                <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Margin="0,28,0,0" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="20">
-                    <Border Grid.Row="0" Background="#101010" CornerRadius="6" Padding="16">
-                        <TextBlock Text="Placeholder: Element 3" Foreground="#DDDDDD" FontSize="22" />
-                    </Border>
+                <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Margin="0,28,0,0" RowDefinitions="Auto,*" RowSpacing="12">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,*" ColumnSpacing="16" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="18">
+                        <TextBlock Grid.Column="1" Grid.Row="0" Text="Yesterday" Foreground="#AAAAAA" FontSize="16" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="Today · kWh" Foreground="#AAAAAA" FontSize="16" HorizontalAlignment="Center" />
 
-                    <Border Grid.Row="1" Background="#101010" CornerRadius="6" Padding="16">
-                        <TextBlock Text="Placeholder: Element 4" Foreground="#DDDDDD" FontSize="22" />
-                    </Border>
+                        <Image Grid.Column="0" Grid.Row="1" Source="/Assets/icon_home.png" Width="28" Height="28" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding HomeYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#2AA7E0" FontSize="40" HorizontalAlignment="Center" Opacity="0.8" />
+                        <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding HomeTodayKwh, StringFormat='{}{0:0}'}" Foreground="#2AA7E0" FontSize="40" HorizontalAlignment="Center" />
 
-                    <Border Grid.Row="2" Background="#101010" CornerRadius="6" Padding="16">
-                        <TextBlock Text="Placeholder: Element 5" Foreground="#DDDDDD" FontSize="22" />
-                    </Border>
+                        <Image Grid.Column="0" Grid.Row="2" Source="/Assets/icon_solar.png" Width="28" Height="28" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding SolarYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#E0B800" FontSize="40" HorizontalAlignment="Center" Opacity="0.8" />
+                        <TextBlock Grid.Column="2" Grid.Row="2" Text="{Binding SolarTodayKwh, StringFormat='{}{0:0}'}" Foreground="#E0B800" FontSize="40" HorizontalAlignment="Center" />
+
+                        <Image Grid.Column="0" Grid.Row="3" Source="/Assets/icon_grid.png" Width="28" Height="28" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Grid.Row="3" Spacing="4" HorizontalAlignment="Center" Opacity="0.8">
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" IsVisible="{Binding IsYesterdayGridExportVisible}">
+                                <Image Source="/Assets/icon_grid_export.png" Width="20" Height="20" />
+                                <TextBlock Text="{Binding GridExportYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#CCCCCC" FontSize="28" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                <Image Source="/Assets/icon_grid_import.png" Width="20" Height="20" />
+                                <TextBlock Text="{Binding GridImportYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#CCCCCC" FontSize="28" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Grid.Row="3" Spacing="4" HorizontalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" IsVisible="{Binding IsTodayGridExportVisible}">
+                                <Image Source="/Assets/icon_grid_export.png" Width="20" Height="20" />
+                                <TextBlock Text="{Binding GridExportTodayKwh, StringFormat='{}{0:0}'}" Foreground="#FFFFFF" FontSize="28" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                <Image Source="/Assets/icon_grid_import.png" Width="20" Height="20" />
+                                <TextBlock Text="{Binding GridImportTodayKwh, StringFormat='{}{0:0}'}" Foreground="#FFFFFF" FontSize="28" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Image Grid.Column="0" Grid.Row="4" Source="/Assets/icon_battery.png" Width="28" Height="28" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Grid.Row="4" Spacing="4" HorizontalAlignment="Center" Opacity="0.8">
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                <Image Source="/Assets/icon_battery_export.png" Width="20" Height="20" />
+                                <TextBlock Text="{Binding BatteryExportYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#3CC83C" FontSize="28" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                <Image Source="/Assets/icon_battery_import.png" Width="20" Height="20" />
+                                <TextBlock Text="{Binding BatteryImportYesterdayKwh, StringFormat='{}{0:0}'}" Foreground="#3CC83C" FontSize="28" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Grid.Row="4" Spacing="4" HorizontalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                <Image Source="/Assets/icon_battery_export.png" Width="20" Height="20" />
+                                <TextBlock Text="{Binding BatteryExportTodayKwh, StringFormat='{}{0:0}'}" Foreground="#3CC83C" FontSize="28" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                <Image Source="/Assets/icon_battery_import.png" Width="20" Height="20" />
+                                <TextBlock Text="{Binding BatteryImportTodayKwh, StringFormat='{}{0:0}'}" Foreground="#3CC83C" FontSize="28" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+
+                    <lvc:CartesianChart x:Name="HistoricalPowerChart" Grid.Row="1"
+                                        LegendPosition="Right"
+                                        MinHeight="220" />
                 </Grid>
             </Grid>
         </Border>

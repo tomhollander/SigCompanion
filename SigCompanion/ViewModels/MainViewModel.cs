@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -7,10 +9,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LiveChartsCore;
+using LiveChartsCore.Defaults;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
 using SigCompanion.Lib.Sigen;
+using SigCompanion.Lib.Sigen.Models;
 using SigCompanion.Lib.Sigen.Models;
 using SigCompanion.Models;
 using SigCompanion.Services;
+using SkiaSharp;
 
 namespace SigCompanion.ViewModels
 {
@@ -116,6 +124,21 @@ namespace SigCompanion.ViewModels
         private string batteryPower;
 
         [ObservableProperty]
+        private string flowSolarText;
+
+        [ObservableProperty]
+        private string flowGridText;
+
+        [ObservableProperty]
+        private string flowHomeText;
+
+        [ObservableProperty]
+        private string flowBatteryText;
+
+        [ObservableProperty]
+        private PowerFlowAllocation powerFlows;
+
+        [ObservableProperty]
         private ObservableCollection<SigenStationCardComparisonRow> historicalStationCards;
 
         [ObservableProperty]
@@ -123,6 +146,57 @@ namespace SigCompanion.ViewModels
 
         [ObservableProperty]
         private string yesterdayChartDataJson;
+
+        [ObservableProperty]
+        private ISeries[] historicalPowerSeries = [];
+
+        [ObservableProperty]
+        private Axis[] historicalXAxes = [];
+
+        [ObservableProperty]
+        private Axis[] historicalYAxes = [];
+
+        [ObservableProperty]
+        private decimal homeYesterdayKwh;
+
+        [ObservableProperty]
+        private decimal homeTodayKwh;
+
+        [ObservableProperty]
+        private decimal solarYesterdayKwh;
+
+        [ObservableProperty]
+        private decimal solarTodayKwh;
+
+        [ObservableProperty]
+        private decimal gridImportYesterdayKwh;
+
+        [ObservableProperty]
+        private decimal gridImportTodayKwh;
+
+        [ObservableProperty]
+        private decimal gridExportYesterdayKwh;
+
+        [ObservableProperty]
+        private decimal gridExportTodayKwh;
+
+        [ObservableProperty]
+        private bool isYesterdayGridExportVisible;
+
+        [ObservableProperty]
+        private bool isTodayGridExportVisible;
+
+        [ObservableProperty]
+        private decimal batteryImportYesterdayKwh;
+
+        [ObservableProperty]
+        private decimal batteryImportTodayKwh;
+
+        [ObservableProperty]
+        private decimal batteryExportYesterdayKwh;
+
+        [ObservableProperty]
+        private decimal batteryExportTodayKwh;
 
         [ObservableProperty]
         private bool isBusy;
@@ -323,6 +397,28 @@ namespace SigCompanion.ViewModels
             _pollingCts = null;
         }
 
+        private void UpdateEnergyTotals(IEnumerable<SigenStationCardComparisonRow> rows)
+        {
+            var byKey = rows.ToDictionary(row => row.CardKey, StringComparer.Ordinal);
+            decimal Yesterday(string key) => byKey.TryGetValue(key, out var row) ? row.YesterdayKwh : 0m;
+            decimal Today(string key) => byKey.TryGetValue(key, out var row) ? row.TodayKwh : 0m;
+
+            HomeYesterdayKwh = Yesterday("TO_LOAD");
+            HomeTodayKwh = Today("TO_LOAD");
+            SolarYesterdayKwh = Yesterday("FROM_SOLAR");
+            SolarTodayKwh = Today("FROM_SOLAR");
+            GridImportYesterdayKwh = Yesterday("FROM_GRID");
+            GridImportTodayKwh = Today("FROM_GRID");
+            GridExportYesterdayKwh = Yesterday("TO_GRID");
+            GridExportTodayKwh = Today("TO_GRID");
+            IsYesterdayGridExportVisible = GridExportYesterdayKwh > 0;
+            IsTodayGridExportVisible = GridExportTodayKwh > 0;
+            BatteryImportYesterdayKwh = Yesterday("TO_BATTERY");
+            BatteryImportTodayKwh = Today("TO_BATTERY");
+            BatteryExportYesterdayKwh = Yesterday("FROM_BATTERY");
+            BatteryExportTodayKwh = Today("FROM_BATTERY");
+        }
+
         private async Task PollBatteryStatusLoopAsync(string systemId, CancellationToken cancellationToken)
         {
             try
@@ -353,14 +449,30 @@ namespace SigCompanion.ViewModels
                     HeatPumpPower = FormatPower(powerFlow.HeatPumpPower);
                     BatteryPower = FormatPower(powerFlow.BatteryPower);
 
+                    FlowSolarText = FormatFlowValue(powerFlow.PvPower);
+                    FlowGridText = FormatFlowValue(-powerFlow.GridPower);
+                    FlowHomeText = FormatFlowValue(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower);
+                    FlowBatteryText = FormatFlowValue(Math.Abs(powerFlow.BatteryPower));
+
+                    PowerFlows = new PowerFlowAllocation
+                    {
+                        SolarPower = (double)powerFlow.PvPower,
+                        HomePower = (double)(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower),
+                        GridPower = -(double)powerFlow.GridPower,
+                        BatteryPower = -(double)powerFlow.BatteryPower
+                    };
+
                     HistoricalStationCards.Clear();
                     foreach (var row in historical.StationCards)
                     {
                         HistoricalStationCards.Add(row);
                     }
 
+                    UpdateEnergyTotals(historical.StationCards);
+
                     TodayChartDataJson = JsonSerializer.Serialize(historical.TodayChartData, new JsonSerializerOptions { WriteIndented = false });
                     YesterdayChartDataJson = JsonSerializer.Serialize(historical.YesterdayChartData, new JsonSerializerOptions { WriteIndented = false });
+                    UpdateHistoricalPowerChart(historical.YesterdayChartData, historical.TodayChartData);
 
                     await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
                 }
@@ -374,7 +486,115 @@ namespace SigCompanion.ViewModels
             }
         }
 
+        private void UpdateHistoricalPowerChart(JsonElement yesterdayChartData, JsonElement todayChartData)
+        {
+            var charts = new[]
+            {
+                yesterdayChartData.Deserialize<SigenHistoricalChartData>(),
+                todayChartData.Deserialize<SigenHistoricalChartData>()
+            };
+
+            var solar = GetChartSeriesValues(charts, "FROM_SOLAR");
+            var battery = GetChartSeriesValues(charts, "BATTERY");
+            var grid = GetChartSeriesValues(charts, "GRID");
+            var load = GetChartSeriesValues(charts, "TO_LOAD");
+            var evac = GetChartSeriesValues(charts, "TO_EVAC");
+            var gridExport = GetChartSeriesValues(charts, "TO_GRID");
+
+            var times = solar.Keys.Concat(battery.Keys).Concat(grid.Keys).Concat(load.Keys).Concat(evac.Keys).Concat(gridExport.Keys)
+                .Distinct()
+                .OrderBy(t => t)
+                .ToArray();
+
+            // Each side of zero is drawn as non-stacked filled areas holding cumulative totals.
+            // Series are ordered back to front, so the largest total is drawn first.
+            static ISeries CreateSeries(string name, string color, DateTime[] times, Func<DateTime, decimal> valueSelector, bool showInLegend = true)
+            {
+                var baseColor = SKColor.Parse(color);
+                return new LineSeries<DateTimePoint>
+                {
+                    Name = showInLegend ? name : null,
+                    Values = times.Select(t => new DateTimePoint(t, (double)valueSelector(t))).ToArray(),
+                    Fill = new SolidColorPaint(baseColor.WithAlpha(80)),
+                    Stroke = new SolidColorPaint(baseColor) { StrokeThickness = 1 },
+                    GeometrySize = 0,
+                    LineSmoothness = 0,
+                    IsVisibleAtLegend = showInLegend
+                };
+            }
+
+            decimal Sun(DateTime t) => Math.Max(GetValue(solar, t), 0m);
+            decimal BatteryDischarge(DateTime t) => Math.Max(GetValue(battery, t), 0m);
+            decimal GridImport(DateTime t) => Math.Max(GetValue(grid, t), 0m);
+            decimal BatteryCharge(DateTime t) => Math.Min(GetValue(battery, t), 0m);
+            decimal Home(DateTime t) => Math.Min(GetValue(load, t), 0m);
+            decimal Evac(DateTime t) => Math.Min(GetValue(evac, t), 0m);
+            decimal GridExport(DateTime t) => Math.Min(GetValue(gridExport, t), 0m);
+
+            HistoricalPowerSeries =
+            [
+                CreateSeries("Grid", "#CCCCCC", times, t => Sun(t) + BatteryDischarge(t) + GridImport(t)),
+                CreateSeries("Battery", "#3CC83C", times, t => Sun(t) + BatteryDischarge(t)),
+                CreateSeries("Solar", "#E0B800", times, t => Sun(t)),
+                CreateSeries("Grid", "#CCCCCC", times, t => BatteryCharge(t) + Home(t) + Evac(t) + GridExport(t), showInLegend: false),
+                CreateSeries("Home", "#2AA7E0", times, t => BatteryCharge(t) + Home(t) + Evac(t)),
+                CreateSeries("EVAC", "#E03C3C", times, t => BatteryCharge(t) + Evac(t)),
+                CreateSeries("Battery", "#3CC83C", times, t => BatteryCharge(t), showInLegend: false)
+            ];
+
+            HistoricalXAxes =
+            [
+                new Axis
+                {
+                    Labeler = value => value < DateTime.MinValue.Ticks || value > DateTime.MaxValue.Ticks
+                        ? string.Empty
+                        : new DateTime((long)value).ToString("h tt", CultureInfo.InvariantCulture),
+                    MinLimit = DateTime.Today.AddDays(-1).Ticks,
+                    MaxLimit = DateTime.Today.AddDays(1).Ticks,
+                    UnitWidth = TimeSpan.FromHours(2).Ticks,
+                    MinStep = TimeSpan.FromHours(2).Ticks,
+                    LabelsPaint = new SolidColorPaint(SKColor.Parse("#AAAAAA"))
+                }
+            ];
+
+            HistoricalYAxes =
+            [
+                new Axis
+                {
+                    Labeler = value => $"{Math.Abs(value):0} kW",
+                    LabelsPaint = new SolidColorPaint(SKColor.Parse("#AAAAAA"))
+                }
+            ];
+        }
+
+        private static Dictionary<DateTime, decimal> GetChartSeriesValues(IEnumerable<SigenHistoricalChartData?> charts, string seriesId)
+        {
+            var values = new Dictionary<DateTime, decimal>();
+            foreach (var chart in charts)
+            {
+                var series = chart?.DataSeries?.FirstOrDefault(s => s.Id == seriesId);
+                if (series?.Points is null)
+                {
+                    continue;
+                }
+
+                foreach (var point in series.Points)
+                {
+                    if (point.Value is decimal value && DateTime.TryParseExact(point.Time, "yyyyMMdd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
+                    {
+                        values[time] = value;
+                    }
+                }
+            }
+
+            return values;
+        }
+
+        private static decimal GetValue(Dictionary<DateTime, decimal> values, DateTime time) => values.TryGetValue(time, out var value) ? value : 0m;
+
         private static string FormatPower(decimal power) => $"{power:0.###} kW";
+
+        private static string FormatFlowValue(decimal power) => Math.Abs(power) < 0.1m ? string.Empty : power.ToString("0.0", CultureInfo.InvariantCulture);
 
         public enum AppPage
         {
