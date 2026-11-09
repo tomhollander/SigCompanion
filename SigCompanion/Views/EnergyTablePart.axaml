@@ -21,46 +21,46 @@
         <TextBlock Grid.Column="2" Grid.Row="2" Text="{Binding SolarTodayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#E0B800" FontSize="48" VerticalAlignment="Center" HorizontalAlignment="Center" />
 
         <Image Grid.Column="0" Grid.Row="3" Source="/Assets/icon_grid.png" Width="28" Height="28" VerticalAlignment="Center" />
-        <StackPanel Grid.Column="1" Grid.Row="3" Spacing="4" HorizontalAlignment="Center" Opacity="0.8">
-            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" IsVisible="{Binding IsYesterdayGridExportVisible}">
-                <Image Source="/Assets/icon_grid_export.png" Width="20" Height="20" />
-                <TextBlock Text="{Binding GridExportYesterdayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#CCCCCC" FontSize="30" />
-            </StackPanel>
+        <StackPanel Grid.Column="1" Grid.Row="3" Spacing="2" HorizontalAlignment="Center" Opacity="0.8">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                <Image Source="/Assets/icon_grid_import.png" Width="20" Height="20" />
-                <TextBlock Text="{Binding GridImportYesterdayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#CCCCCC" FontSize="30" />
+                <Image Source="/Assets/icon_grid_import.png" Width="30" Height="30" />
+                <TextBlock Text="{Binding GridImportYesterdayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#CCCCCC" FontSize="36" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" IsVisible="{Binding IsYesterdayGridExportVisible}">
+                <TextBlock Text="{Binding GridExportYesterdayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#CCCCCC" FontSize="36" />
+                <Image Source="/Assets/icon_grid_export.png" Width="30" Height="30" />
             </StackPanel>
         </StackPanel>
-        <StackPanel Grid.Column="2" Grid.Row="3" Spacing="4" HorizontalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" IsVisible="{Binding IsTodayGridExportVisible}">
-                <Image Source="/Assets/icon_grid_export.png" Width="20" Height="20" />
-                <TextBlock Text="{Binding GridExportTodayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#FFFFFF" FontSize="30" />
-            </StackPanel>
+        <StackPanel Grid.Column="2" Grid.Row="3" Spacing="2" HorizontalAlignment="Center">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                <Image Source="/Assets/icon_grid_import.png" Width="20" Height="20" />
-                <TextBlock Text="{Binding GridImportTodayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#FFFFFF" FontSize="30" />
+                <Image Source="/Assets/icon_grid_import.png" Width="30" Height="30" />
+                <TextBlock Text="{Binding GridImportTodayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#FFFFFF" FontSize="36" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" IsVisible="{Binding IsTodayGridExportVisible}">
+                <TextBlock Text="{Binding GridExportTodayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#FFFFFF" FontSize="36" />
+                <Image Source="/Assets/icon_grid_export.png" Width="30" Height="30" />
             </StackPanel>
         </StackPanel>
 
         <Image Grid.Column="0" Grid.Row="4" Source="/Assets/icon_battery.png" Width="28" Height="28" VerticalAlignment="Center" />
-        <StackPanel Grid.Column="1" Grid.Row="4" Spacing="4" HorizontalAlignment="Center" Opacity="0.8">
+        <StackPanel Grid.Column="1" Grid.Row="4" Spacing="2" HorizontalAlignment="Center" Opacity="0.8">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                <Image Source="/Assets/icon_battery_export.png" Width="20" Height="20" />
-                <TextBlock Text="{Binding BatteryExportYesterdayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#3CC83C" FontSize="30" />
+                <Image Source="/Assets/icon_battery_export.png" Width="30" Height="30" />
+                <TextBlock Text="{Binding BatteryExportYesterdayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#3CC83C" FontSize="36" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                <Image Source="/Assets/icon_battery_import.png" Width="20" Height="20" />
-                <TextBlock Text="{Binding BatteryImportYesterdayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#3CC83C" FontSize="30" />
+                <TextBlock Text="{Binding BatteryImportYesterdayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#3CC83C" FontSize="36" />
+                <Image Source="/Assets/icon_battery_import.png" Width="30" Height="30" />
             </StackPanel>
         </StackPanel>
-        <StackPanel Grid.Column="2" Grid.Row="4" Spacing="4" HorizontalAlignment="Center">
+        <StackPanel Grid.Column="2" Grid.Row="4" Spacing="2" HorizontalAlignment="Center">
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                <Image Source="/Assets/icon_battery_export.png" Width="20" Height="20" />
-                <TextBlock Text="{Binding BatteryExportTodayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#3CC83C" FontSize="30" />
+                <Image Source="/Assets/icon_battery_export.png" Width="30" Height="30" />
+                <TextBlock Text="{Binding BatteryExportTodayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#3CC83C" FontSize="36" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                <Image Source="/Assets/icon_battery_import.png" Width="20" Height="20" />
-                <TextBlock Text="{Binding BatteryImportTodayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#3CC83C" FontSize="30" />
+                <TextBlock Text="{Binding BatteryImportTodayKwh, StringFormat='{}{0:0}', FallbackValue='-'}" Foreground="#3CC83C" FontSize="36" />
+                <Image Source="/Assets/icon_battery_import.png" Width="30" Height="30" />
             </StackPanel>
         </StackPanel>
     </Grid>

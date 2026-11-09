@@ -48,10 +48,13 @@
 
                 <!-- 3. Phone landscape (800x480 reference, two swipeable pages) -->
                 <Viewbox x:Name="PhoneLandscapeLayout" IsVisible="False" Margin="8,12,8,8">
-                    <Grid Width="800" Height="480" Background="Transparent"
+                    <Grid Width="800" Height="480" Background="Transparent" ClipToBounds="True"
                           PointerPressed="OnPagerPointerPressed"
                           PointerReleased="OnPagerPointerReleased">
                         <Grid x:Name="LandscapePage1" ColumnDefinitions="*,*">
+                            <Grid.RenderTransform>
+                                <TranslateTransform />
+                            </Grid.RenderTransform>
                             <Viewbox Grid.Column="0" Width="380" Height="440" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <views:GaugePart />
                             </Viewbox>
@@ -60,6 +63,9 @@
                             </Viewbox>
                         </Grid>
                         <Grid x:Name="LandscapePage2" RowDefinitions="Auto,*" RowSpacing="8" IsVisible="False">
+                            <Grid.RenderTransform>
+                                <TranslateTransform />
+                            </Grid.RenderTransform>
                             <views:TransposedEnergyTablePart Grid.Row="0" HorizontalAlignment="Center" />
                             <views:ChartPart Grid.Row="1" />
                         </Grid>
@@ -68,18 +74,24 @@
 
                 <!-- 4. Phone portrait (440x860 reference, two swipeable pages) -->
                 <Viewbox x:Name="PhonePortraitLayout" IsVisible="False" Margin="8,12,8,8">
-                    <Grid Width="440" Height="860" Background="Transparent"
+                    <Grid Width="440" Height="860" Background="Transparent" ClipToBounds="True"
                           PointerPressed="OnPagerPointerPressed"
                           PointerReleased="OnPagerPointerReleased">
                         <StackPanel x:Name="PortraitPage1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
-                            <Viewbox Width="420" Height="420">
+                            <StackPanel.RenderTransform>
+                                <TranslateTransform />
+                            </StackPanel.RenderTransform>
+                            <Viewbox Width="420" Height="360">
                                 <views:GaugePart />
                             </Viewbox>
-                            <Viewbox Width="420" Height="300">
+                            <Viewbox Width="420" Height="360">
                                 <views:FlowPart />
                             </Viewbox>
                         </StackPanel>
                         <Grid x:Name="PortraitPage2" RowDefinitions="Auto,*" RowSpacing="12" IsVisible="False">
+                            <Grid.RenderTransform>
+                                <TranslateTransform />
+                            </Grid.RenderTransform>
                             <views:EnergyTablePart Grid.Row="0" HorizontalAlignment="Center" />
                             <views:ChartPart Grid.Row="1" />
                         </Grid>
