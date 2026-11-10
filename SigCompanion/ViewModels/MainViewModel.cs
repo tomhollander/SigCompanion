@@ -175,6 +175,9 @@ namespace SigCompanion.ViewModels
         [ObservableProperty]
         private ISeries[] historicalPowerSeries = [];
 
+        private ISeries[] historicalPowerLineSeries = [];
+        private DateTimePoint[] historicalSocPoints = [];
+
         [ObservableProperty]
         private Axis[] historicalXAxes = [];
 
@@ -243,6 +246,37 @@ namespace SigCompanion.ViewModels
             }
         }
 
+        private bool cyclePagesWhenIdle;
+        public bool CyclePagesWhenIdle
+        {
+            get => cyclePagesWhenIdle;
+            set
+            {
+                if (SetProperty(ref cyclePagesWhenIdle, value))
+                {
+                    _settings.CyclePagesWhenIdle = value;
+                    _settingsStore.Save(_settings);
+                }
+            }
+        }
+
+        public string[] ChartDataOptions { get; } = ["Power", "Battery SoC", "Both"];
+
+        private string chartData = "Power";
+        public string ChartData
+        {
+            get => chartData;
+            set
+            {
+                if (SetProperty(ref chartData, value))
+                {
+                    _settings.ChartData = value;
+                    _settingsStore.Save(_settings);
+                    UpdateHistoricalChartSeries();
+                }
+            }
+        }
+
         private string currentTimeText = string.Empty;
         public string CurrentTimeText
         {
@@ -279,12 +313,24 @@ namespace SigCompanion.ViewModels
             Password = _settings.Password ?? string.Empty;
             SavePassword = _settings.SavePassword;
             ShowClock = _settings.ShowClock;
+            CyclePagesWhenIdle = _settings.CyclePagesWhenIdle;
+            ChartData = _settings.ChartData;
 
             if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
             {
                 StatusMessage = "Please sign in.";
                 CurrentPage = AppPage.Login;
                 return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_settings.AccessToken))
+            {
+                _sigenUiApi.SetCredentials(new SigenCredentials
+                {
+                    AccessToken = _settings.AccessToken,
+                    ExpiresAt = _settings.AccessTokenExpiresAt,
+                    Username = Username,
+                });
             }
 
             StatusMessage = "Signing in with saved credentials...";
@@ -335,6 +381,9 @@ namespace SigCompanion.ViewModels
                 _settings.Username = Username;
                 _settings.SavePassword = SavePassword;
                 _settings.Password = SavePassword ? Password : null;
+                var credentials = _sigenUiApi.GetCredentials();
+                _settings.AccessToken = credentials?.AccessToken;
+                _settings.AccessTokenExpiresAt = credentials?.ExpiresAt;
                 _settings.SystemId = SelectedSystem.SystemId;
                 _settingsStore.Save(_settings);
 
@@ -386,7 +435,7 @@ namespace SigCompanion.ViewModels
             StopPolling();
             _isAuthenticated = false;
 
-            _settings = new AppSettings { ShowClock = _settings.ShowClock };
+            _settings = new AppSettings { ShowClock = _settings.ShowClock, CyclePagesWhenIdle = _settings.CyclePagesWhenIdle };
             _settingsStore.Save(_settings);
 
             Username = string.Empty;
@@ -498,6 +547,15 @@ namespace SigCompanion.ViewModels
                 {
                     Debug.WriteLine($"Dashboard poll failed: {ex}");
                     StatusMessage = ex.Message;
+
+                    // For testing
+                    //PowerFlows = new PowerFlowAllocation
+                    //{
+                    //    SolarPower = (double)10,
+                    //    HomePower = (double)20,
+                    //    GridPower = -(double)-0,
+                    //    BatteryPower = -(double)-10
+                    //}; 
                 }
 
                 try
@@ -634,7 +692,7 @@ namespace SigCompanion.ViewModels
             decimal Evac(DateTime t) => Math.Min(GetValue(evac, t), 0m);
             decimal GridExport(DateTime t) => Math.Min(GetValue(gridExport, t), 0m);
 
-            HistoricalPowerSeries =
+            historicalPowerLineSeries =
             [
                 CreateSeries("Grid", "#CCCCCC", times, t => Sun(t) + BatteryDischarge(t) + GridImport(t), t => GridImport(t)),
                 CreateSeries("Battery", "#3CC83C", times, t => Sun(t) + BatteryDischarge(t), t => BatteryDischarge(t)),
@@ -643,19 +701,9 @@ namespace SigCompanion.ViewModels
                 CreateSeries("Home", "#2AA7E0", times, t => BatteryCharge(t) + Home(t) + Evac(t), t => Home(t)),
                 CreateSeries("EV", "#E03C3C", times, t => BatteryCharge(t) + Evac(t), t => Evac(t)),
                 CreateSeries("Battery", "#3CC83C", times, t => BatteryCharge(t), t => BatteryCharge(t), showInLegend: false),
-                new LineSeries<DateTimePoint>
-                {
-                    Name = "SoC",
-                    Values = socValues.Select(p => new DateTimePoint(p.Key, (double)p.Value)).ToArray(),
-                    ScalesYAt = 1,
-                    Fill = null,
-                    Stroke = new SolidColorPaint(SKColor.Parse("#00D3D3")) { StrokeThickness = 2 },
-                    GeometrySize = 0,
-                    LineSmoothness = 0,
-                    XToolTipLabelFormatter = point => new DateTime((long)point.Coordinate.SecondaryValue).ToString("h:mm tt", CultureInfo.InvariantCulture),
-                    YToolTipLabelFormatter = point => $"{point.Coordinate.PrimaryValue:0.#}%",
-                },
             ];
+            historicalSocPoints = socValues.Select(p => new DateTimePoint(p.Key, (double)p.Value)).ToArray();
+            UpdateHistoricalChartSeries();
 
 
             HistoricalXAxes =
@@ -673,14 +721,42 @@ namespace SigCompanion.ViewModels
                 }
             ];
 
-            HistoricalYAxes =
-            [
-                new Axis
+            }
+
+        private void UpdateHistoricalChartSeries()
+        {
+            bool showPower = ChartData is "Power" or "Both";
+            bool showSoc = ChartData is "Battery SoC" or "Both";
+
+            var series = new List<ISeries>();
+            var axes = new List<Axis>();
+
+            if (showPower)
+            {
+                series.AddRange(historicalPowerLineSeries);
+                axes.Add(new Axis
                 {
                     Labeler = value => $"{Math.Abs(value):0} kW",
                     LabelsPaint = new SolidColorPaint(SKColor.Parse("#AAAAAA"))
-                },
-                new Axis
+                });
+            }
+
+            if (showSoc)
+            {
+                var socColor = SKColor.Parse("#00D3D3");
+                series.Add(new LineSeries<DateTimePoint>
+                {
+                    Name = "SoC",
+                    Values = historicalSocPoints,
+                    ScalesYAt = showPower ? 1 : 0,
+                    Fill = ChartData == "Battery SoC" ? new SolidColorPaint(socColor.WithAlpha(80)) : null,
+                    Stroke = new SolidColorPaint(socColor) { StrokeThickness = 2 },
+                    GeometrySize = 0,
+                    LineSmoothness = 0,
+                    XToolTipLabelFormatter = point => new DateTime((long)point.Coordinate.SecondaryValue).ToString("h:mm tt", CultureInfo.InvariantCulture),
+                    YToolTipLabelFormatter = point => $"{point.Coordinate.PrimaryValue:0.#}%",
+                });
+                axes.Add(new Axis
                 {
                     Position = LiveChartsCore.Measure.AxisPosition.End,
                     MinLimit = 0,
@@ -688,8 +764,11 @@ namespace SigCompanion.ViewModels
                     Labeler = value => $"{value:0}%",
                     ShowSeparatorLines = false,
                     LabelsPaint = new SolidColorPaint(SKColor.Parse("#AAAAAA"))
-                }
-            ];
+                });
+            }
+
+            HistoricalPowerSeries = series.ToArray();
+            HistoricalYAxes = axes.ToArray();
         }
 
         private static Dictionary<DateTime, decimal> GetChartSeriesValues(IEnumerable<SigenHistoricalChartData?> charts, string seriesId)

@@ -16,7 +16,7 @@
     <Grid Background="#000000">
         <Border IsVisible="{Binding IsMainPageVisible}" Background="#000000">
             <Grid>
-                <Image Source="/Assets/app_logo.png" HorizontalAlignment="Center" VerticalAlignment="Top" Height="15" Opacity="0.8" />
+                <Image Source="/Assets/app_logo.png" HorizontalAlignment="Center" VerticalAlignment="Top" Height="15" Opacity="0.8" Margin="0,5,0,0" />
                 <TextBlock Text="{Binding CurrentTimeText}" IsVisible="{Binding ShowClock}" Foreground="#808080" FontSize="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4,10,0,0" />
 
                 <!-- 1. Large landscape (1000x800 shared reference, scaled to fit) -->
@@ -37,7 +37,7 @@
                 <!-- 2. Large portrait (1000x700 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargePortraitLayout" IsVisible="False" Margin="12,24,12,12">
                     <Grid Width="700" Height="1000" RowDefinitions="4*,3*,3*" RowSpacing="16">
-                        <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="16">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="8">
                             <views:GaugePart Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <views:FlowPart Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Grid>

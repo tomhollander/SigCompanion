@@ -21,6 +21,13 @@ public sealed class SigenUiApi
         _cachedApiClient.SetLoginCredentials(username, password);
     }
 
+    public void SetCredentials(SigenCredentials credentials)
+    {
+        _cachedApiClient.SetCredentials(credentials);
+    }
+
+    public SigenCredentials? GetCredentials() => _cachedApiClient.GetCredentials();
+
     public async Task<IReadOnlyList<SigenSystemReference>> GetSystemsAsync(CancellationToken cancellationToken = default)
     {
         var systems = await GetSystemListDataAsync(cancellationToken).ConfigureAwait(false);

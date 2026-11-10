@@ -38,6 +38,11 @@ public sealed class SigenApiClient
 
         lock (_sync)
         {
+            if (_loginContext is not null && !string.Equals(_loginContext.Username, username, StringComparison.OrdinalIgnoreCase))
+            {
+                _credentials = null;
+            }
+
             _loginContext = new SigenLoginContext
             {
                 Username = username,

@@ -1,5 +1,6 @@
 
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Avalonia;
@@ -7,6 +8,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
+using SigCompanion.ViewModels;
 
 namespace SigCompanion.Views
 {
@@ -20,6 +23,11 @@ namespace SigCompanion.Views
 
         private const double PageTransitionMilliseconds = 300;
 
+        // Idle time before the phone pages start cycling, and the interval between subsequent cycles.
+        private static readonly TimeSpan IdleBeforeCycle = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(10);
+
+        private readonly DispatcherTimer _idleTimer;
         private int _phonePage;
         private double? _pointerStartX;
         private bool _isTransitioning;
@@ -28,6 +36,8 @@ namespace SigCompanion.Views
         {
             InitializeComponent();
             SizeChanged += OnViewSizeChanged;
+            _idleTimer = new DispatcherTimer { Interval = IdleBeforeCycle };
+            _idleTimer.Tick += OnIdleTimerTick;
         }
 
         protected override void OnLoaded(RoutedEventArgs e)
@@ -44,6 +54,21 @@ namespace SigCompanion.Views
 
                 // 2. Hide the status bar / system bars
                 insetsManager.IsSystemBarVisible = false;
+            }
+
+            if (DataContext is MainViewModel viewModel)
+            {
+                viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            }
+
+            ResetIdleTimer();
+        }
+
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(MainViewModel.CyclePagesWhenIdle) or nameof(MainViewModel.IsMainPageVisible))
+            {
+                ResetIdleTimer();
             }
         }
 
@@ -68,6 +93,7 @@ namespace SigCompanion.Views
             PhonePortraitLayout.IsVisible = isPhone && !isLandscape;
 
             ShowPhonePage(_phonePage);
+            ResetIdleTimer();
         }
 
         private void ShowPhonePage(int page)
@@ -80,6 +106,36 @@ namespace SigCompanion.Views
             LandscapePage2.IsVisible = page == 1;
             PortraitPage1.IsVisible = page == 0;
             PortraitPage2.IsVisible = page == 1;
+        }
+
+        private bool IsCyclingEnabled =>
+            DataContext is MainViewModel { CyclePagesWhenIdle: true, IsMainPageVisible: true } &&
+            (PhoneLandscapeLayout.IsVisible || PhonePortraitLayout.IsVisible);
+
+        private void ResetIdleTimer()
+        {
+            _idleTimer.Stop();
+            _idleTimer.Interval = IdleBeforeCycle;
+
+            if (IsCyclingEnabled)
+            {
+                _idleTimer.Start();
+            }
+        }
+
+        private void OnIdleTimerTick(object? sender, EventArgs e)
+        {
+            _idleTimer.Stop();
+
+            if (!IsCyclingEnabled)
+            {
+                return;
+            }
+
+            _ = TransitionToPhonePageAsync(_phonePage == 0 ? 1 : 0);
+
+            _idleTimer.Interval = CycleInterval;
+            _idleTimer.Start();
         }
 
         private void OnPagerPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -100,10 +156,12 @@ namespace SigCompanion.Views
             if (delta <= -SwipeThreshold && _phonePage == 0)
             {
                 _ = TransitionToPhonePageAsync(1);
+                ResetIdleTimer();
             }
             else if (delta >= SwipeThreshold && _phonePage == 1)
             {
                 _ = TransitionToPhonePageAsync(0);
+                ResetIdleTimer();
             }
         }
 

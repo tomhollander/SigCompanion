@@ -8,7 +8,7 @@
             </Grid>
             <Border Grid.Row="1" Background="#101010" CornerRadius="8" Padding="16">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="{Binding Username, StringFormat='Signed in as {0}'}" Foreground="#BEBEBE" FontSize="16" />
+                    <TextBlock Text="{Binding Username, StringFormat='Signed in as {0}'}" Foreground="#BEBEBE" FontSize="16" TextWrapping="Wrap" />
                     <TextBlock Text="System" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
                     <StackPanel Spacing="6">
                         <TextBlock Text="Active system" Foreground="#BEBEBE" />
@@ -21,7 +21,11 @@
                         </ComboBox>
                     </StackPanel>
                     <ToggleSwitch Content="Show clock" Foreground="#FFFFFF" IsChecked="{Binding ShowClock, Mode=TwoWay}" />
-                    <TextBlock Text="More settings content will be added here." Foreground="#9C9C9C" FontSize="16" />
+                    <ToggleSwitch Content="Cycle pages when idle" Foreground="#FFFFFF" IsChecked="{Binding CyclePagesWhenIdle, Mode=TwoWay}" />
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Chart data" Foreground="#BEBEBE" />
+                        <ComboBox ItemsSource="{Binding ChartDataOptions}" SelectedItem="{Binding ChartData, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

@@ -13,11 +13,11 @@ public sealed class PowerFlowDiagram : Control
 {
     private const double MinimumFlow = 0.1;
     private const double StrokeThickness = 9;
-    private const double ArrowLength = 9;
-    private const double ArrowHalfWidth = 9;
-    private const double NodeInsetDegrees = 14;
-    private const double NodeInsetFraction = 0.12;
-    private const double LabelOffset = 14;
+    private const double ArrowLength = 7;
+    private const double ArrowHalfWidth = 7;
+    private const double NodeInsetDegrees = 18;
+    private const double NodeInsetFraction = 0.16;
+    private const double LabelOffset = 18;
     private const double LabelFontSize = 16;
     private const int ArcSegments = 32;
     private const double FlowSpeed = 40;
@@ -77,7 +77,7 @@ public sealed class PowerFlowDiagram : Control
         var width = Bounds.Width;
         var height = Bounds.Height;
         var center = new Point(width / 2d, height / 2d);
-        var radius = 0.42d * Math.Min(width, height);
+        var radius = 0.48d * Math.Min(width, height);
 
         var solarPosition = PointOnCircle(center, radius, 225d);
         var gridPosition = PointOnCircle(center, radius, 315d);
