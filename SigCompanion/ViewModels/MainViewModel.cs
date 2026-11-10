@@ -62,7 +62,7 @@ namespace SigCompanion.ViewModels
             username = string.Empty;
             password = string.Empty;
             selectedRegion = SigenRegions.Default;
-            currentPage = AppPage.Login;
+            currentPage = AppPage.Login; 
 
             signInCommand = new AsyncRelayCommand(SignInAsync);
             openSettingsCommand = new RelayCommand(OpenSettings);
@@ -563,10 +563,10 @@ namespace SigCompanion.ViewModels
                     //PowerFlows = new PowerFlowAllocation
                     //{
                     //    SolarPower = (double)10,
-                    //    HomePower = (double)20,
-                    //    GridPower = -(double)-0,
+                    //    HomePower = (double)10,
+                    //    GridPower = -(double)-10,
                     //    BatteryPower = -(double)-10
-                    //}; 
+                    //};
                 }
 
                 try

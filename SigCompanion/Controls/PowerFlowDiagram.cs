@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
@@ -159,19 +160,23 @@ public sealed class PowerFlowDiagram : Control
         var offset = _elapsed * FlowSpeed;
         Color ColorAt(double distance) => Lerp(fromColor, toColor, Triangle(Frac((distance - offset) / totalLength)));
 
+        var trimmed = TrimEnd(points, ArrowLength);
+
         const int subdivisions = 8;
-        var dense = new Point[(points.Length - 1) * subdivisions + 1];
-        for (var i = 1; i < points.Length; i++)
+        var dense = new Point[(trimmed.Length - 1) * subdivisions + 1];
+        for (var i = 1; i < trimmed.Length; i++)
         {
             for (var j = 0; j < subdivisions; j++)
             {
                 var f = (double)j / subdivisions;
-                var a = points[i - 1];
-                var b = points[i];
+                var a = trimmed[i - 1];
+                var b = trimmed[i];
                 dense[(i - 1) * subdivisions + j] = new Point(a.X + (b.X - a.X) * f, a.Y + (b.Y - a.Y) * f);
             }
         }
-        dense[^1] = last;
+        dense[^1] = trimmed[^1];
+
+        var direction = Normalize(last - points[^2]);
 
         var distances = new double[dense.Length];
         for (var i = 1; i < dense.Length; i++)
@@ -193,11 +198,10 @@ public sealed class PowerFlowDiagram : Control
                     new GradientStop(ColorAt(distances[i]), 1)
                 }
             };
-            var pen = new Pen(brush, StrokeThickness) { LineCap = PenLineCap.Round };
+            var pen = new Pen(brush, StrokeThickness) { LineCap = i == dense.Length - 1 ? PenLineCap.Flat : PenLineCap.Round };
             context.DrawLine(pen, dense[i - 1], dense[i]);
         }
 
-        var direction = Normalize(last - points[^2]);
         var perpendicular = new Vector(-direction.Y, direction.X);
         var tip = last + direction * ArrowLength;
         var baseCentre = last - direction * ArrowLength;
@@ -223,6 +227,33 @@ public sealed class PowerFlowDiagram : Control
             new SolidColorBrush(fromColor));
 
         context.DrawText(text, labelPosition - new Vector(text.Width / 2d, text.Height / 2d));
+    }
+
+    private static Point[] TrimEnd(Point[] points, double amount)
+    {
+        var totalLength = 0d;
+        for (var i = 1; i < points.Length; i++)
+        {
+            totalLength += new Vector(points[i].X - points[i - 1].X, points[i].Y - points[i - 1].Y).Length;
+        }
+
+        var target = totalLength - amount;
+        var result = new List<Point> { points[0] };
+        var travelled = 0d;
+        for (var i = 1; i < points.Length; i++)
+        {
+            var from = points[i - 1];
+            var to = points[i];
+            var segment = new Vector(to.X - from.X, to.Y - from.Y).Length;
+            if (travelled + segment >= target)
+            {
+                result.Add(from + (to - from) * ((target - travelled) / segment));
+                return result.ToArray();
+            }
+            travelled += segment;
+            result.Add(to);
+        }
+        return result.ToArray();
     }
 
     private static double Frac(double value) => value - Math.Floor(value);
