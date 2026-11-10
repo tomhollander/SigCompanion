@@ -109,8 +109,8 @@
                     <Image Source="/Assets/settings.png" Stretch="Uniform" />
                 </Button>
 
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,40,12,0">
-                    <Image Source="/Assets/cloud_disconnected.png" Width="25" Height="25" Margin="3" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,40,12,0" PointerPressed="OnStatusIconsPointerPressed">
+                    <Image Source="/Assets/cloud_disconnected.png" Width="25" Height="25" Margin="3" IsVisible="{Binding IsCloudApiUnavailable}" ToolTip.Tip="{Binding CloudUnavailableError}" />
                     <Image Source="/Assets/modbus_disconnected.png" Width="25" Height="25" Margin="3" />
                     <Image Source="/Assets/modbus_unconfigured.png" Width="25" Height="25" Margin="3" ToolTip.Tip="Realtime data via Modbus has not been configured. Data will be refreshed every 5 minutes." />
                 </StackPanel>

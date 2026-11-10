@@ -27,7 +27,12 @@ namespace SigCompanion.Views
         private static readonly TimeSpan IdleBeforeCycle = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(10);
 
+        // How long a status icon tooltip stays open after being tapped on a touch device.
+        private static readonly TimeSpan TooltipDisplayDuration = TimeSpan.FromSeconds(3);
+
         private readonly DispatcherTimer _idleTimer;
+        private readonly DispatcherTimer _tooltipTimer;
+        private Control? _openTooltipTarget;
         private int _phonePage;
         private double? _pointerStartX;
         private bool _isTransitioning;
@@ -38,6 +43,38 @@ namespace SigCompanion.Views
             SizeChanged += OnViewSizeChanged;
             _idleTimer = new DispatcherTimer { Interval = IdleBeforeCycle };
             _idleTimer.Tick += OnIdleTimerTick;
+            _tooltipTimer = new DispatcherTimer { Interval = TooltipDisplayDuration };
+            _tooltipTimer.Tick += OnTooltipTimerTick;
+        }
+
+        private void OnStatusIconsPointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (e.Pointer.Type != PointerType.Touch || e.Source is not Control icon || ToolTip.GetTip(icon) is null)
+            {
+                return;
+            }
+
+            CloseOpenTooltip();
+            ToolTip.SetIsOpen(icon, true);
+            _openTooltipTarget = icon;
+            _tooltipTimer.Stop();
+            _tooltipTimer.Start();
+        }
+
+        private void OnTooltipTimerTick(object? sender, EventArgs e)
+        {
+            CloseOpenTooltip();
+        }
+
+        private void CloseOpenTooltip()
+        {
+            _tooltipTimer.Stop();
+
+            if (_openTooltipTarget is not null)
+            {
+                ToolTip.SetIsOpen(_openTooltipTarget, false);
+                _openTooltipTarget = null;
+            }
         }
 
         protected override void OnLoaded(RoutedEventArgs e)

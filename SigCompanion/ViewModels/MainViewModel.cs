@@ -238,6 +238,12 @@ namespace SigCompanion.ViewModels
         [ObservableProperty]
         private AppPage currentPage;
 
+        [ObservableProperty]
+        private bool isCloudApiUnavailable;
+
+        [ObservableProperty]
+        private string cloudUnavailableError;
+
         private bool showClock;
         public bool ShowClock
         {
@@ -549,6 +555,7 @@ namespace SigCompanion.ViewModels
                 try
                 {
                     await RefreshDashboardAsync(systemId, cancellationToken);
+                    IsCloudApiUnavailable = false;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -556,8 +563,10 @@ namespace SigCompanion.ViewModels
                 }
                 catch (Exception ex)
                 {
+                    IsCloudApiUnavailable = true;
                     Debug.WriteLine($"Dashboard poll failed: {ex}");
                     StatusMessage = ex.Message;
+                    CloudUnavailableError = "Unable to reach the Sigenergy API. Last error: " + ex.Message;
 
                     // For testing
                     //PowerFlows = new PowerFlowAllocation
