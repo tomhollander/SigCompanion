@@ -11,6 +11,7 @@ public sealed class SigenApiClient
     private readonly HttpClient _httpClient;
     private readonly JsonSerializerOptions _serializerOptions;
     private readonly object _sync = new();
+    private const string UserAgent = "SigCompanion/1.0";
 
     private SigenCredentials? _credentials;
     private SigenLoginContext? _loginContext;
@@ -22,7 +23,23 @@ public sealed class SigenApiClient
         _serializerOptions = serializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
 
-    public SigenOptions Options { get; }
+    public SigenOptions Options { get; private set; }
+
+    public void SetRegion(SigenRegionInfo region)
+    {
+        ArgumentNullException.ThrowIfNull(region);
+
+        lock (_sync)
+        {
+            if (string.Equals(Options.BaseUrl, region.BaseUrl, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            Options = Options with { Region = region.Region, BaseUrl = region.BaseUrl };
+            _credentials = null;
+        }
+    }
 
     public void SetLoginCredentials(string username, string password)
     {
@@ -276,7 +293,7 @@ public sealed class SigenApiClient
         var request = new HttpRequestMessage(method, uri);
 
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Headers.Add("x-sigen-region", Options.Region);
+        request.Headers.UserAgent.ParseAdd(UserAgent);
 
         if (includeAuthorization)
         {
@@ -313,13 +330,32 @@ public sealed class SigenApiClient
     private static async Task<SigenApiEnvelope<T>> DeserializeEnvelopeAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            using var errorDocument = await TryParseJsonAsync(stream, cancellationToken).ConfigureAwait(false);
+            if (IsRateLimitResponse(errorDocument))
+            {
+                throw new SigenRateLimitException();
+            }
+
+            var bodyMessage = errorDocument is not null
+                && errorDocument.RootElement.TryGetProperty("msg", out var msgElement)
+                && msgElement.ValueKind == JsonValueKind.String
+                    ? msgElement.GetString()
+                    : null;
+
+            throw new HttpRequestException(
+                bodyMessage ?? $"Sigen API request failed with HTTP {(int)response.StatusCode} ({response.ReasonPhrase}).",
+                null,
+                response.StatusCode);
+        }
+
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         // Check the code before typed deserialization: rate-limit responses return data: {},
         // which cannot be deserialized into types such as string.
-        if (document.RootElement.TryGetProperty("code", out var codeElement)
-            && codeElement.ValueKind == JsonValueKind.Number
-            && codeElement.GetInt32() == SigenRateLimitException.RateLimitCode)
+        if (IsRateLimitResponse(document))
         {
             throw new SigenRateLimitException();
         }
@@ -333,6 +369,24 @@ public sealed class SigenApiClient
 
         return envelope;
     }
+
+    private static async Task<JsonDocument?> TryParseJsonAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static bool IsRateLimitResponse(JsonDocument? document) =>
+        document is not null
+        && document.RootElement.TryGetProperty("code", out var codeElement)
+        && codeElement.ValueKind == JsonValueKind.Number
+        && codeElement.GetInt32() == SigenRateLimitException.RateLimitCode;
 
     private SigenTokenPayload? TryParseTokenPayload(JsonElement tokenData)
     {

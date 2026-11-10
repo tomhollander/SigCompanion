@@ -24,7 +24,7 @@
             <TextBlock Text="{Binding FlowHomeText}" Foreground="#2AA7E0" FontSize="42" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
         </Grid>
         <TextBlock Text="kW" FontSize="16" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" Foreground="#AAAAAA"/> 
-        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="1" Margin="0,-10,0,0">
+        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="1" Margin="0,-8,0,0">
             <Image x:Name="evIcon" Source="/Assets/icon_ev.png" Width="20" Height="20" IsVisible="{Binding EvIconVisible}" Margin="0,0,12,0" />
             <TextBlock Text="{Binding FlowEvText}"  Grid.Row="1" Foreground="#DD6A6A" FontSize="24"  />
         </StackPanel>

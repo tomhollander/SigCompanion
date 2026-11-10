@@ -7,6 +7,7 @@ public sealed class AppSettings
     public string? Username { get; set; }
     public string? Password { get; set; }
     public bool SavePassword { get; set; }
+    public string? Region { get; set; }
     public string? AccessToken { get; set; }
     public DateTimeOffset? AccessTokenExpiresAt { get; set; }
     public string? SystemId { get; set; }

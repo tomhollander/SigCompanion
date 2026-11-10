@@ -21,6 +21,11 @@ public sealed class SigenUiApi
         _cachedApiClient.SetLoginCredentials(username, password);
     }
 
+    public void SetRegion(SigenRegionInfo region)
+    {
+        _cachedApiClient.SetRegion(region);
+    }
+
     public void SetCredentials(SigenCredentials credentials)
     {
         _cachedApiClient.SetCredentials(credentials);

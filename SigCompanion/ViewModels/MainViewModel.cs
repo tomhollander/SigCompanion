@@ -61,6 +61,7 @@ namespace SigCompanion.ViewModels
             yesterdayChartDataJson = "-";
             username = string.Empty;
             password = string.Empty;
+            selectedRegion = SigenRegions.Default;
             currentPage = AppPage.Login;
 
             signInCommand = new AsyncRelayCommand(SignInAsync);
@@ -84,6 +85,11 @@ namespace SigCompanion.ViewModels
 
         [ObservableProperty]
         private bool savePassword;
+
+        [ObservableProperty]
+        private SigenRegionInfo selectedRegion;
+
+        public IReadOnlyList<SigenRegionInfo> Regions => SigenRegions.All;
 
         [ObservableProperty]
         private string statusMessage;
@@ -315,6 +321,8 @@ namespace SigCompanion.ViewModels
             ShowClock = _settings.ShowClock;
             CyclePagesWhenIdle = _settings.CyclePagesWhenIdle;
             ChartData = _settings.ChartData;
+            SelectedRegion = SigenRegions.GetByRegion(_settings.Region);
+            _sigenUiApi.SetRegion(SelectedRegion);
 
             if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
             {
@@ -352,6 +360,7 @@ namespace SigCompanion.ViewModels
 
             try
             {
+                _sigenUiApi.SetRegion(SelectedRegion);
                 _sigenUiApi.SetLoginCredentials(Username, Password);
 
                 var loadedSystems = await _sigenUiApi.GetSystemsAsync();
@@ -381,6 +390,7 @@ namespace SigCompanion.ViewModels
                 _settings.Username = Username;
                 _settings.SavePassword = SavePassword;
                 _settings.Password = SavePassword ? Password : null;
+                _settings.Region = SelectedRegion.Region;
                 var credentials = _sigenUiApi.GetCredentials();
                 _settings.AccessToken = credentials?.AccessToken;
                 _settings.AccessTokenExpiresAt = credentials?.ExpiresAt;
@@ -441,6 +451,7 @@ namespace SigCompanion.ViewModels
             Username = string.Empty;
             Password = string.Empty;
             SavePassword = false;
+            SelectedRegion = SigenRegions.Default;
             SelectedSystem = null;
             Systems.Clear();
             BatterySoc = "-";

@@ -129,6 +129,12 @@
                 <StackPanel Spacing="10">
                     <TextBlock Text="Sign In with your MySigen Account" Foreground="#FFFFFF" FontWeight="Bold" FontSize="20" />
 
+                    <TextBlock Text="Account Region" Foreground="#CCCCCC" />
+                    <ComboBox ItemsSource="{Binding Regions}"
+                              SelectedItem="{Binding SelectedRegion, Mode=TwoWay}"
+                              DisplayMemberBinding="{Binding Name}"
+                              HorizontalAlignment="Stretch" />
+
                     <TextBlock Text="Username" Foreground="#CCCCCC" />
                     <TextBox Text="{Binding Username, Mode=TwoWay}" Watermark="Username" />
 

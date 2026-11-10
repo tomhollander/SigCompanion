@@ -18,6 +18,12 @@ public sealed class SigenCachedApiClient
     public void SetLoginCredentials(string username, string password) =>
         _innerClient.SetLoginCredentials(username, password);
 
+    public void SetRegion(SigenRegionInfo region)
+    {
+        _innerClient.SetRegion(region);
+        ClearCache();
+    }
+
     public void SetCredentials(SigenCredentials credentials) =>
         _innerClient.SetCredentials(credentials);
 
