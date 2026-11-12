@@ -11,19 +11,20 @@
     </UserControl.Styles>
     <Grid Width="280" Height="280">
         <controls:BatteryGaugeControl StateOfCharge="{Binding BatterySocValue}" IsGridConnected="{Binding IsGridConnected}" BatteryPower="{Binding PowerFlows.BatteryPower}" />
+ 
+        <Image Source="/Assets/grid_disconnected.png"
+                Width="34"
+                Height="34"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Margin="0,0,0,80"
+                IsVisible="{Binding IsGridDisconnected}" />
 
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
-            <Image Source="/Assets/grid_disconnected.png"
-                   Width="34"
-                   Height="34"
-                   HorizontalAlignment="Center"
-                   IsVisible="{Binding IsGridDisconnected}" />
-
-            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                <Image Source="/Assets/icon_battery.png" Width="30" Height="30" />
-                <TextBlock Text="{Binding BatterySoc}" Foreground="#FFFFFF" FontSize="42"/>
-            </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Image Source="/Assets/icon_battery.png" Width="30" Height="30" />
+            <TextBlock Text="{Binding BatterySoc}" Foreground="#FFFFFF" FontSize="42"/>
         </StackPanel>
+       
 
         <Image Source="/Assets/icon_grid_export_yellow.png" Width="40" Height="40" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,8,0,0" IsVisible="{Binding IsExportingToGrid}" />
         <Image Source="/Assets/icon_battery_import.png" Width="40" Height="40" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,8,0" IsVisible="{Binding IsBatteryCharging}" />

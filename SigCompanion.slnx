@@ -1,5 +1,7 @@
 <Solution>
-  <Project Path="SigCompanion.Android/SigCompanion.Android.csproj" />
+  <Project Path="SigCompanion.Android/SigCompanion.Android.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
   <Project Path="SigCompanion.Browser/SigCompanion.Browser.csproj" />
   <Project Path="SigCompanion.Desktop/SigCompanion.Desktop.csproj" />
   <Project Path="SigCompanion.iOS/SigCompanion.iOS.csproj" />

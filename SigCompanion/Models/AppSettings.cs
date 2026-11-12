@@ -14,4 +14,8 @@ public sealed class AppSettings
     public bool ShowClock { get; set; }
     public bool CyclePagesWhenIdle { get; set; }
     public string ChartData { get; set; } = "Power";
+    public bool UseModbus { get; set; }
+    public string? ModbusHost { get; set; }
+    public int ModbusPort { get; set; } = 502;
+    public byte ModbusSlaveAddress { get; set; } = 247;
 }

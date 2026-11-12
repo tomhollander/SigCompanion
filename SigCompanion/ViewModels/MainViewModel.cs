@@ -17,6 +17,7 @@ using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SigCompanion.Lib.Sigen;
 using SigCompanion.Lib.Sigen.Models;
+using SigCompanion.Lib.Sigen.Modbus;
 using SigCompanion.Models;
 using SigCompanion.Services;
 using SkiaSharp;
@@ -29,6 +30,8 @@ namespace SigCompanion.ViewModels
         private readonly AppSettingsStore _settingsStore;
         private AppSettings _settings;
         private CancellationTokenSource? _pollingCts;
+        private CancellationTokenSource? _modbusCts;
+        private bool _modbusHealthy;
         private bool _isAuthenticated;
         private readonly DispatcherTimer _clockTimer;
 
@@ -244,6 +247,15 @@ namespace SigCompanion.ViewModels
         [ObservableProperty]
         private string cloudUnavailableError;
 
+        [ObservableProperty]
+        private bool isModbusUnconfigured;
+
+        [ObservableProperty]
+        private bool isModbusUnavailable;
+
+        [ObservableProperty]
+        private string modbusUnavailableError = string.Empty;
+
         private bool showClock;
         public bool ShowClock
         {
@@ -289,6 +301,68 @@ namespace SigCompanion.ViewModels
             }
         }
 
+        private bool useModbus;
+        public bool UseModbus
+        {
+            get => useModbus;
+            set
+            {
+                if (SetProperty(ref useModbus, value))
+                {
+                    _settings.UseModbus = value;
+                    _settingsStore.Save(_settings);
+                    RestartModbusPolling();
+                    IsModbusUnavailable = false;
+                    IsModbusUnconfigured = !value;
+                }
+            }
+        }
+
+        private string? modbusHost;
+        public string? ModbusHost
+        {
+            get => modbusHost;
+            set
+            {
+                if (SetProperty(ref modbusHost, value))
+                {
+                    _settings.ModbusHost = value;
+                    _settingsStore.Save(_settings);
+                    RestartModbusPolling();
+                }
+            }
+        }
+
+        private int modbusPort = 502;
+        public int ModbusPort
+        {
+            get => modbusPort;
+            set
+            {
+                if (SetProperty(ref modbusPort, value))
+                {
+                    _settings.ModbusPort = value;
+                    _settingsStore.Save(_settings);
+                    RestartModbusPolling();
+                }
+            }
+        }
+
+        private byte modbusSlaveAddress = 247;
+        public byte ModbusSlaveAddress
+        {
+            get => modbusSlaveAddress;
+            set
+            {
+                if (SetProperty(ref modbusSlaveAddress, value))
+                {
+                    _settings.ModbusSlaveAddress = value;
+                    _settingsStore.Save(_settings);
+                    RestartModbusPolling();
+                }
+            }
+        }
+
         private string currentTimeText = string.Empty;
         public string CurrentTimeText
         {
@@ -327,6 +401,10 @@ namespace SigCompanion.ViewModels
             ShowClock = _settings.ShowClock;
             CyclePagesWhenIdle = _settings.CyclePagesWhenIdle;
             ChartData = _settings.ChartData;
+            UseModbus = _settings.UseModbus;
+            ModbusHost = _settings.ModbusHost;
+            ModbusPort = _settings.ModbusPort;
+            ModbusSlaveAddress = _settings.ModbusSlaveAddress;
             SelectedRegion = SigenRegions.GetByRegion(_settings.Region);
             _sigenUiApi.SetRegion(SelectedRegion);
 
@@ -451,7 +529,16 @@ namespace SigCompanion.ViewModels
             StopPolling();
             _isAuthenticated = false;
 
-            _settings = new AppSettings { ShowClock = _settings.ShowClock, CyclePagesWhenIdle = _settings.CyclePagesWhenIdle };
+            _settings = new AppSettings
+            {
+                ShowClock = _settings.ShowClock,
+                CyclePagesWhenIdle = _settings.CyclePagesWhenIdle,
+                ChartData = _settings.ChartData,
+                UseModbus = _settings.UseModbus,
+                ModbusHost = _settings.ModbusHost,
+                ModbusPort = _settings.ModbusPort,
+                ModbusSlaveAddress = _settings.ModbusSlaveAddress
+            };
             _settingsStore.Save(_settings);
 
             Username = string.Empty;
@@ -517,10 +604,35 @@ namespace SigCompanion.ViewModels
 
             _pollingCts = new CancellationTokenSource();
             _ = PollBatteryStatusLoopAsync(systemId, _pollingCts.Token);
+            RestartModbusPolling();
+        }
+
+        private void RestartModbusPolling()
+        {
+            StopModbusPolling();
+
+            if (_pollingCts is null || !UseModbus || string.IsNullOrWhiteSpace(ModbusHost))
+            {
+                return;
+            }
+
+            _modbusCts = new CancellationTokenSource();
+            _ = PollModbusLoopAsync(ModbusHost, ModbusPort, ModbusSlaveAddress, _modbusCts.Token);
+        }
+
+        private void StopModbusPolling()
+        {
+            _modbusCts?.Cancel();
+            _modbusCts?.Dispose();
+            _modbusCts = null;
+            _modbusHealthy = false;
+            IsModbusUnavailable = false;
+            ModbusUnavailableError = string.Empty;
         }
 
         private void StopPolling()
         {
+            StopModbusPolling();
             _pollingCts?.Cancel();
             _pollingCts?.Dispose();
             _pollingCts = null;
@@ -589,52 +701,137 @@ namespace SigCompanion.ViewModels
             }
         }
 
-        private async Task RefreshDashboardAsync(string systemId, CancellationToken cancellationToken)
+        private async Task PollModbusLoopAsync(string host, int port, byte slaveAddress, CancellationToken cancellationToken)
         {
-            var batteryStatusTask = _sigenUiApi.GetBatteryStatusAsync(systemId, cancellationToken);
-            var powerFlowTask = _sigenUiApi.GetPowerFlowSnapshotAsync(systemId, cancellationToken);
-            var historicalTask = _sigenUiApi.GetHistoricalDayComparisonAsync(systemId, cancellationToken);
+            using var modbusClient = new SigenModbusClient(host, port, slaveAddress);
 
-            await Task.WhenAll(batteryStatusTask, powerFlowTask, historicalTask);
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var delay = TimeSpan.FromSeconds(5);
+                try
+                {
+                    var plant = await modbusClient.GetPlantInformationAsync(cancellationToken);
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
 
-            var snapshot = await batteryStatusTask;
-            var powerFlow = await powerFlowTask;
-            var historical = await historicalTask;
+                    ApplyModbusPlantInformation(plant);
+                    _modbusHealthy = true;
+                    IsModbusUnavailable = false;
+                    ModbusUnavailableError = string.Empty;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _modbusHealthy = false;
+                    IsModbusUnavailable = true;
+                    ModbusUnavailableError = "Unable to reach the Modbus interface. Last error: " + ex.Message;
+                    Debug.WriteLine($"Modbus poll failed: {ex}");
+                    delay = TimeSpan.FromMinutes(1);
+                }
 
-            BatterySocValue = (double)snapshot.BatteryStateOfCharge;
-            IsGridConnected = snapshot.IsGridConnected;
-            BatterySoc = $"{snapshot.BatteryStateOfCharge:0}%";
-            BatteryStatus = snapshot.BatteryStatus.ToString();
-            GridStatus = snapshot.IsGridConnected ? "Connected" : "Disconnected";
+                try
+                {
+                    await Task.Delay(delay, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+        }
 
-            PvPower = FormatPower(powerFlow.PvPower);
-            GridPower = FormatPower(powerFlow.GridPower);
-            EvPower = FormatPower(powerFlow.EvPower);
-            AcPower = FormatPower(powerFlow.AcPower);
-            LoadPower = FormatPower(powerFlow.LoadPower);
-            HeatPumpPower = FormatPower(powerFlow.HeatPumpPower);
-            BatteryPower = FormatPower(powerFlow.BatteryPower);
+        private void ApplyModbusPlantInformation(SigenPlantInformation plant)
+        {
+            var gridPower = plant.GridSensorActivePower / 1000;
+            var pvPower = plant.PhotovoltaicPower / 1000;
+            var essPower = plant.EssPower / 1000;
+            var loadPower = pvPower + gridPower - essPower;
 
-            FlowSolarText = FormatFlowValue(powerFlow.PvPower);
-            FlowGridText = FormatFlowValue(-powerFlow.GridPower);
-            FlowHomeText = FormatFlowValue(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower);
-            FlowBatteryText = FormatFlowValue(Math.Abs(powerFlow.BatteryPower));
-            FlowEvText = FormatFlowValue(powerFlow.EvPower + powerFlow.AcPower);
-            EvIconVisible = (powerFlow.EvPower + powerFlow.AcPower) > 0;
+            IsGridConnected = plant.OnOffGridStatus == 1;
+            BatterySocValue = (double)plant.EnergyStorageSystemSoc;
+            BatterySoc = $"{plant.EnergyStorageSystemSoc:0}%";
+            GridStatus = IsGridConnected ? "Connected" : "Disconnected";
+
+            PvPower = FormatPower(pvPower);
+            GridPower = FormatPower(-gridPower);
+            BatteryPower = FormatPower(-essPower);
+            LoadPower = FormatPower(loadPower);
+
+            FlowSolarText = FormatFlowValue(pvPower);
+            FlowGridText = FormatFlowValue(gridPower);
+            FlowHomeText = FormatFlowValue(loadPower);
+            FlowBatteryText = FormatFlowValue(Math.Abs(essPower));
 
             PowerFlows = new PowerFlowAllocation
             {
-                SolarPower = (double)powerFlow.PvPower,
-                HomePower = (double)(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower),
-                GridPower = -(double)powerFlow.GridPower,
-                BatteryPower = -(double)powerFlow.BatteryPower
+                SolarPower = (double)pvPower,
+                HomePower = (double)loadPower,
+                GridPower = (double)gridPower,
+                BatteryPower = (double)essPower
             };
 
-            // Raw API signs: gridPower > 0 = export (Grid tile shows -GridPower); batteryPower > 0 = charging, < 0 = discharging.
-            IsExportingToGrid = powerFlow.GridPower > 0;
-            IsImportingFromGrid = powerFlow.GridPower < 0;
-            IsBatteryCharging = powerFlow.BatteryPower > 0;
-            IsBatteryDischarging = powerFlow.BatteryPower < 0;
+            IsExportingToGrid = gridPower < 0;
+            IsImportingFromGrid = gridPower > 0;
+            IsBatteryCharging = essPower < 0;
+            IsBatteryDischarging = essPower > 0;
+        }
+
+        private async Task RefreshDashboardAsync(string systemId, CancellationToken cancellationToken)
+        {
+            var historicalTask = _sigenUiApi.GetHistoricalDayComparisonAsync(systemId, cancellationToken);
+
+            if (!_modbusHealthy)
+            {
+                var batteryStatusTask = _sigenUiApi.GetBatteryStatusAsync(systemId, cancellationToken);
+                var powerFlowTask = _sigenUiApi.GetPowerFlowSnapshotAsync(systemId, cancellationToken);
+
+                await Task.WhenAll(batteryStatusTask, powerFlowTask);
+
+                var snapshot = await batteryStatusTask;
+                var powerFlow = await powerFlowTask;
+
+                BatterySocValue = (double)snapshot.BatteryStateOfCharge;
+                IsGridConnected = snapshot.IsGridConnected;
+                BatterySoc = $"{snapshot.BatteryStateOfCharge:0}%";
+                BatteryStatus = snapshot.BatteryStatus.ToString();
+                GridStatus = snapshot.IsGridConnected ? "Connected" : "Disconnected";
+
+                PvPower = FormatPower(powerFlow.PvPower);
+                GridPower = FormatPower(powerFlow.GridPower);
+                EvPower = FormatPower(powerFlow.EvPower);
+                AcPower = FormatPower(powerFlow.AcPower);
+                LoadPower = FormatPower(powerFlow.LoadPower);
+                HeatPumpPower = FormatPower(powerFlow.HeatPumpPower);
+                BatteryPower = FormatPower(powerFlow.BatteryPower);
+
+                FlowSolarText = FormatFlowValue(powerFlow.PvPower);
+                FlowGridText = FormatFlowValue(-powerFlow.GridPower);
+                FlowHomeText = FormatFlowValue(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower);
+                FlowBatteryText = FormatFlowValue(Math.Abs(powerFlow.BatteryPower));
+                FlowEvText = FormatFlowValue(powerFlow.EvPower + powerFlow.AcPower);
+                EvIconVisible = (powerFlow.EvPower + powerFlow.AcPower) > 0;
+
+                PowerFlows = new PowerFlowAllocation
+                {
+                    SolarPower = (double)powerFlow.PvPower,
+                    HomePower = (double)(powerFlow.LoadPower + powerFlow.EvPower + powerFlow.AcPower + powerFlow.HeatPumpPower),
+                    GridPower = -(double)powerFlow.GridPower,
+                    BatteryPower = -(double)powerFlow.BatteryPower
+                };
+
+                // Raw API signs: gridPower > 0 = export (Grid tile shows -GridPower); batteryPower > 0 = charging, < 0 = discharging.
+                IsExportingToGrid = powerFlow.GridPower > 0;
+                IsImportingFromGrid = powerFlow.GridPower < 0;
+                IsBatteryCharging = powerFlow.BatteryPower > 0;
+                IsBatteryDischarging = powerFlow.BatteryPower < 0;
+            }
+
+            var historical = await historicalTask;
 
             HistoricalStationCards.Clear();
             foreach (var row in historical.StationCards)

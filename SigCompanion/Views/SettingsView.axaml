@@ -26,6 +26,21 @@
                         <TextBlock Text="Chart data" Foreground="#BEBEBE" />
                         <ComboBox ItemsSource="{Binding ChartDataOptions}" SelectedItem="{Binding ChartData, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260" />
                     </StackPanel>
+                    <ToggleSwitch Content="Get realtime data from Modbus interface" Foreground="#FFFFFF" IsChecked="{Binding UseModbus, Mode=TwoWay}" />
+                    <StackPanel Spacing="10" IsVisible="{Binding UseModbus}">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Host" Foreground="#BEBEBE" />
+                            <TextBox Text="{Binding ModbusHost, Mode=TwoWay}" MinWidth="260" />
+                        </StackPanel>
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Port" Foreground="#BEBEBE" />
+                            <NumericUpDown Value="{Binding ModbusPort, Mode=TwoWay}" Minimum="1" Maximum="65535" Increment="1" FormatString="0" MinWidth="260" />
+                        </StackPanel>
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Slave address" Foreground="#BEBEBE" />
+                            <NumericUpDown Value="{Binding ModbusSlaveAddress, Mode=TwoWay}" Minimum="1" Maximum="247" Increment="1" FormatString="0" MinWidth="260" />
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

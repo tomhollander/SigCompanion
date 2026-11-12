@@ -111,8 +111,8 @@
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,40,12,0" PointerPressed="OnStatusIconsPointerPressed">
                     <Image Source="/Assets/cloud_disconnected.png" Width="25" Height="25" Margin="3" IsVisible="{Binding IsCloudApiUnavailable}" ToolTip.Tip="{Binding CloudUnavailableError}" />
-                    <Image Source="/Assets/modbus_disconnected.png" Width="25" Height="25" Margin="3" />
-                    <Image Source="/Assets/modbus_unconfigured.png" Width="25" Height="25" Margin="3" ToolTip.Tip="Realtime data via Modbus has not been configured. Data will be refreshed every 5 minutes." />
+                    <Image Source="/Assets/modbus_disconnected.png" Width="25" Height="25" Margin="3" IsVisible="{Binding IsModbusUnavailable}" ToolTip.Tip="{Binding ModbusUnavailableError}" />
+                    <Image Source="/Assets/modbus_unconfigured.png" Width="25" Height="25" Margin="3" IsVisible="{Binding IsModbusUnconfigured}" ToolTip.Tip="Realtime data via Modbus has not been configured. Data will be refreshed every 5 minutes." />
                 </StackPanel>
             </Grid>
         </Border>
@@ -142,10 +142,10 @@
                               HorizontalAlignment="Stretch" />
 
                     <TextBlock Text="Username" Foreground="#CCCCCC" />
-                    <TextBox Text="{Binding Username, Mode=TwoWay}" Watermark="Username" />
+                    <TextBox Text="{Binding Username, Mode=TwoWay}" PlaceholderText="Username" />
 
                     <TextBlock Text="Password" Foreground="#CCCCCC" />
-                    <TextBox Text="{Binding Password, Mode=TwoWay}" PasswordChar="*" Watermark="Password" />
+                    <TextBox Text="{Binding Password, Mode=TwoWay}" PasswordChar="*" PlaceholderText="Password" />
 
                     <CheckBox IsChecked="{Binding SavePassword, Mode=TwoWay}" Content="Save password" />
 
