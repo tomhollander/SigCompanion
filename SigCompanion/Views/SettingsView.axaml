@@ -1,47 +1,65 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:vm="using:SigCompanion.ViewModels" xmlns:models="using:SigCompanion.Lib.Sigen.Models" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SigCompanion.Views.SettingsView" x:DataType="vm:MainViewModel">
-    <Border Background="#000000" Padding="18" MinHeight="640">
+﻿<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:vm="using:SigCompanion.ViewModels" xmlns:models="using:SigCompanion.Lib.Sigen.Models" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SigCompanion.Views.SettingsView" x:DataType="vm:MainViewModel">
+    <Border Background="#000000" Padding="8" MaxWidth="600">
         <Grid RowDefinitions="Auto,*" RowSpacing="20">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                 <TextBlock Text="Settings" Foreground="#FFFFFF" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center" />
                 <Button Grid.Column="1" Content="Sign Out" Command="{Binding SignOutCommand}" Padding="14,8" />
                 <Button Grid.Column="2" Content="Back" Command="{Binding BackToMainCommand}" Padding="14,8" />
             </Grid>
-            <Border Grid.Row="1" Background="#101010" CornerRadius="8" Padding="16">
-                <StackPanel Spacing="14">
-                    <TextBlock Text="{Binding Username, StringFormat='Signed in as {0}'}" Foreground="#BEBEBE" FontSize="16" TextWrapping="Wrap" />
-                    <TextBlock Text="System" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
-                    <StackPanel Spacing="6">
-                        <TextBlock Text="Active system" Foreground="#BEBEBE" />
-                        <ComboBox ItemsSource="{Binding Systems}" SelectedItem="{Binding SelectedSystem, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="models:SigenSystemReference">
-                                    <TextBlock Text="{Binding SystemName}" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </StackPanel>
-                    <ToggleSwitch Content="Show clock" Foreground="#FFFFFF" IsChecked="{Binding ShowClock, Mode=TwoWay}" />
-                    <ToggleSwitch Content="Cycle pages when idle" Foreground="#FFFFFF" IsChecked="{Binding CyclePagesWhenIdle, Mode=TwoWay}" />
-                    <StackPanel Spacing="6">
-                        <TextBlock Text="Chart data" Foreground="#BEBEBE" />
-                        <ComboBox ItemsSource="{Binding ChartDataOptions}" SelectedItem="{Binding ChartData, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260" />
-                    </StackPanel>
-                    <ToggleSwitch Content="Get realtime data from Modbus interface" Foreground="#FFFFFF" IsChecked="{Binding UseModbus, Mode=TwoWay}" />
-                    <StackPanel Spacing="10" IsVisible="{Binding UseModbus}">
+            <Border Grid.Row="1" Background="#101010" CornerRadius="8" Padding="8">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="14">
+                        <TextBlock Text="{Binding Username, StringFormat='Signed in as {0}'}" Foreground="#BEBEBE" FontSize="16" TextWrapping="Wrap" />
+                        <TextBlock Text="System" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
                         <StackPanel Spacing="6">
-                            <TextBlock Text="Host" Foreground="#BEBEBE" />
-                            <TextBox Text="{Binding ModbusHost, Mode=TwoWay}" MinWidth="260" />
+                            <TextBlock Text="Active system" Foreground="#BEBEBE" />
+                            <ComboBox ItemsSource="{Binding Systems}" SelectedItem="{Binding SelectedSystem, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:SigenSystemReference">
+                                        <TextBlock Text="{Binding SystemName}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </StackPanel>
+                        <ToggleSwitch IsChecked="{Binding UseModbus, Mode=TwoWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Foreground="#FFFFFF">Get realtime data from Modbus interface</TextBlock>
+                                <HyperlinkButton Padding="0" BorderThickness="0" NavigateUri="https://github.com/tomhollander/SigCompanion/wiki/Modbus-Information"><Border Width="20" Height="20" CornerRadius="10" BorderBrush="#BEBEBE" BorderThickness="1"><TextBlock Text="i" Foreground="#BEBEBE" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></HyperlinkButton>
+                            </StackPanel>
+                        </ToggleSwitch>
+                        <StackPanel Spacing="10" IsVisible="{Binding UseModbus}">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Host" Foreground="#BEBEBE" />
+                                <TextBox Text="{Binding ModbusHost, Mode=TwoWay}" MinWidth="260" />
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Port" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding ModbusPort, Mode=TwoWay}" Minimum="1" Maximum="65535" Increment="1" FormatString="0" MinWidth="260" />
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Slave address" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding ModbusSlaveAddress, Mode=TwoWay}" Minimum="1" Maximum="247" Increment="1" FormatString="0" MinWidth="260" />
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Text="Features" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
+                        <ToggleSwitch Content="Show clock" Foreground="#FFFFFF" IsChecked="{Binding ShowClock, Mode=TwoWay}" />
+                        <ToggleSwitch Content="Cycle pages when idle" Foreground="#FFFFFF" IsChecked="{Binding CyclePagesWhenIdle, Mode=TwoWay}" />
                         <StackPanel Spacing="6">
-                            <TextBlock Text="Port" Foreground="#BEBEBE" />
-                            <NumericUpDown Value="{Binding ModbusPort, Mode=TwoWay}" Minimum="1" Maximum="65535" Increment="1" FormatString="0" MinWidth="260" />
+                            <TextBlock Text="Chart data" Foreground="#BEBEBE" />
+                            <ComboBox ItemsSource="{Binding ChartDataOptions}" SelectedItem="{Binding ChartData, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260" />
                         </StackPanel>
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Slave address" Foreground="#BEBEBE" />
-                            <NumericUpDown Value="{Binding ModbusSlaveAddress, Mode=TwoWay}" Minimum="1" Maximum="247" Increment="1" FormatString="0" MinWidth="260" />
+                        <TextBlock Text="About" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="Sig Companion by Tom Hollander" Foreground="#BEBEBE" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding VersionText}" Foreground="#BEBEBE" TextWrapping="Wrap" />
+                        <TextBlock Text="This app is not built or endorsed by Sigenergy" Foreground="#808080" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <HyperlinkButton NavigateUri="https://github.com/tomhollander/SigCompanion">Source code</HyperlinkButton>
+                            <HyperlinkButton NavigateUri="https://github.com/tomhollander/SigCompanion/wiki/Privacy-Policy">Privacy Policy</HyperlinkButton>
                         </StackPanel>
+                        <HyperlinkButton NavigateUri="https://ko-fi.com/tomhollander" Foreground="Cyan">Love this app? Show your appreciation!</HyperlinkButton>
+
                     </StackPanel>
-                </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
     </Border>

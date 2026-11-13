@@ -1,13 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
-using System.Net.Http;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -16,11 +6,22 @@ using LiveChartsCore.Defaults;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SigCompanion.Lib.Sigen;
-using SigCompanion.Lib.Sigen.Models;
 using SigCompanion.Lib.Sigen.Modbus;
+using SigCompanion.Lib.Sigen.Models;
 using SigCompanion.Models;
 using SigCompanion.Services;
 using SkiaSharp;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
+using System.Net.Http;
+using System.Reflection;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SigCompanion.ViewModels
 {
@@ -1022,6 +1023,33 @@ namespace SigCompanion.ViewModels
             Login,
             Main,
             Settings,
+        }
+
+        public string VersionText
+        {
+            get
+            {
+                var assembly = typeof(App).Assembly;
+                string version = "";
+
+                // Reads InformationalVersion (supports semantic versioning like "1.2.0-beta.1")
+                var infoVersion = assembly
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                    .InformationalVersion;
+
+                if (!string.IsNullOrEmpty(infoVersion))
+                {
+                    // Strip the git commit hash suffix added automatically by .NET 8+ SDKs (e.g., "1.2.0+abc1234")
+                    var plusIndex = infoVersion.IndexOf('+');
+                    version = plusIndex > 0 ? infoVersion[..plusIndex] : infoVersion;
+                }
+                else
+                {
+                    version = assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+                }
+
+                return "Version " + version;
+            }
         }
     }
 }

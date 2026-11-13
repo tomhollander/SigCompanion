@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Sets AssemblyVersion, FileVersion, and InformationalVersion -->
+    <Version>1.0.0</Version>
+    
+    <!-- Android-specific version code (must be an integer that increments per store release) -->
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
+  </PropertyGroup>
+</Project>
