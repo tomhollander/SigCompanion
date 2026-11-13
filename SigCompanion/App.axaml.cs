@@ -8,6 +8,8 @@ namespace SigCompanion
 {
     public partial class App : Application
     {
+        public static MainViewModel? MainViewModel { get; private set; }
+
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
@@ -27,7 +29,11 @@ namespace SigCompanion
             }
             else if (ApplicationLifetime is IActivityApplicationLifetime singleViewFactoryApplicationLifetime)
             {
-                singleViewFactoryApplicationLifetime.MainViewFactory = () => new MainView { DataContext = new MainViewModel() };
+                singleViewFactoryApplicationLifetime.MainViewFactory = () =>
+                {
+                    MainViewModel = new MainViewModel();
+                    return new MainView { DataContext = MainViewModel };
+                };
             }
             else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
             {

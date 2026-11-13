@@ -4,6 +4,7 @@ using Android.OS;
 using Android.Views;
 using Avalonia;
 using Avalonia.Android;
+using SigCompanion.ViewModels;
 
 namespace SigCompanion.Android
 {
@@ -21,6 +22,16 @@ namespace SigCompanion.Android
             Window.SetFlags(WindowManagerFlags.Fullscreen, WindowManagerFlags.Fullscreen);
             // Prevent the screen from dimming or locking
             Window.AddFlags(WindowManagerFlags.KeepScreenOn);
+            BackRequested += OnBackRequested;
+        }
+
+        private void OnBackRequested(object? sender, AndroidBackRequestedEventArgs e)
+        {
+            if (App.MainViewModel is { IsSettingsPageVisible: true } viewModel)
+            {
+                viewModel.BackToMainCommand.Execute(null);
+                e.Handled = true;
+            }
         }
     }
 }
