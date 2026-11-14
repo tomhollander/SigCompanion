@@ -38,10 +38,10 @@
                 <Viewbox x:Name="LargePortraitLayout" IsVisible="False" Margin="12,12,12,12">
                     <Grid Width="700" Height="1000" RowDefinitions="4*,3*,3*" RowSpacing="16">
                         <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="8">
-                            <Viewbox Grid.Column="0" Width="350" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Viewbox Grid.Column="0" Width="300" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <views:GaugePart />
                             </Viewbox>
-                            <Viewbox Grid.Column="1" Width="350" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Viewbox Grid.Column="1" Width="300" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <views:FlowPart />
                             </Viewbox>
                         </Grid>

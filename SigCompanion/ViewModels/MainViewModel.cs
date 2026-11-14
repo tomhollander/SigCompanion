@@ -35,6 +35,7 @@ namespace SigCompanion.ViewModels
         private CancellationTokenSource? _modbusCts;
         private bool _modbusHealthy;
         private bool _isAuthenticated;
+        private bool _isDemoMode;
         private readonly DispatcherTimer _clockTimer;
 
         public MainViewModel()
@@ -459,13 +460,21 @@ namespace SigCompanion.ViewModels
             }
 
             IsBusy = true;
+            _isDemoMode = string.Equals(Username, DemoDataProvider.Username, StringComparison.OrdinalIgnoreCase);
 
             try
             {
-                _sigenUiApi.SetRegion(SelectedRegion);
-                _sigenUiApi.SetLoginCredentials(Username, Password);
-
-                var loadedSystems = await _sigenUiApi.GetSystemsAsync();
+                IReadOnlyList<SigenSystemReference> loadedSystems;
+                if (_isDemoMode)
+                {
+                    loadedSystems = DemoDataProvider.Systems;
+                }
+                else
+                {
+                    _sigenUiApi.SetRegion(SelectedRegion);
+                    _sigenUiApi.SetLoginCredentials(Username, Password);
+                    loadedSystems = await _sigenUiApi.GetSystemsAsync();
+                }
                 Systems.Clear();
                 foreach (var system in loadedSystems)
                 {
@@ -493,7 +502,7 @@ namespace SigCompanion.ViewModels
                 _settings.SavePassword = SavePassword;
                 _settings.Password = SavePassword ? Password : null;
                 _settings.Region = SelectedRegion.Region;
-                var credentials = _sigenUiApi.GetCredentials();
+                var credentials = _isDemoMode ? null : _sigenUiApi.GetCredentials();
                 _settings.AccessToken = credentials?.AccessToken;
                 _settings.AccessTokenExpiresAt = credentials?.ExpiresAt;
                 _settings.SystemId = SelectedSystem.SystemId;
@@ -546,6 +555,7 @@ namespace SigCompanion.ViewModels
         {
             StopPolling();
             _isAuthenticated = false;
+            _isDemoMode = false;
 
             _settings = new AppSettings
             {
@@ -807,12 +817,18 @@ namespace SigCompanion.ViewModels
 
         private async Task RefreshDashboardAsync(string systemId, CancellationToken cancellationToken)
         {
-            var historicalTask = _sigenUiApi.GetHistoricalDayComparisonAsync(systemId, cancellationToken);
+            var historicalTask = _isDemoMode
+                ? Task.FromResult(DemoDataProvider.GetHistoricalComparison(DateTime.Now))
+                : _sigenUiApi.GetHistoricalDayComparisonAsync(systemId, cancellationToken);
 
             if (!_modbusHealthy)
             {
-                var batteryStatusTask = _sigenUiApi.GetBatteryStatusAsync(systemId, cancellationToken);
-                var powerFlowTask = _sigenUiApi.GetPowerFlowSnapshotAsync(systemId, cancellationToken);
+                var batteryStatusTask = _isDemoMode
+                    ? Task.FromResult(DemoDataProvider.GetBatteryStatus(DateTime.Now))
+                    : _sigenUiApi.GetBatteryStatusAsync(systemId, cancellationToken);
+                var powerFlowTask = _isDemoMode
+                    ? Task.FromResult(DemoDataProvider.GetPowerFlowSnapshot(DateTime.Now))
+                    : _sigenUiApi.GetPowerFlowSnapshotAsync(systemId, cancellationToken);
 
                 await Task.WhenAll(batteryStatusTask, powerFlowTask);
 
