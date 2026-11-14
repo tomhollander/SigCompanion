@@ -1,15 +1,39 @@
 <Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="ARM" />
+    <Platform Name="ARM32" />
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
     <File Path="sigenergy_v2_9_section_5_1_registers.csv" />
   </Folder>
   <Project Path="SigCompanion.Android/SigCompanion.Android.csproj">
-    <Deploy />
+    <Deploy Solution="*|Any CPU" />
+    <Deploy Solution="*|x64" />
+    <Deploy Solution="Debug|ARM32" />
+    <Deploy Solution="Release|ARM64" />
   </Project>
   <Project Path="SigCompanion.Browser/SigCompanion.Browser.csproj" />
-  <Project Path="SigCompanion.Desktop/SigCompanion.Desktop.csproj" />
-  <Project Path="SigCompanion.iOS/SigCompanion.iOS.csproj" />
+  <Project Path="SigCompanion.Desktop/SigCompanion.Desktop.csproj">
+    <Platform Solution="*|ARM32" Project="ARM32" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="Release|ARM64" Project="ARM64" />
+  </Project>
+  <Project Path="SigCompanion.iOS/SigCompanion.iOS.csproj">
+    <Deploy Solution="*|x64" />
+    <Deploy Solution="Debug|ARM32" />
+    <Deploy Solution="Release|Any CPU" />
+    <Deploy Solution="Release|ARM64" />
+  </Project>
   <Project Path="SigCompanion.Lib/SigCompanion.Lib.csproj" />
   <Project Path="SigCompanion/SigCompanion.csproj" />
+  <Project Path="WindowsPackaging/WindowsPackaging.wapproj" Type="c7167f0d-bc9f-4e6e-afe1-012c56b48db5" Id="0f10bf88-d1d2-45c1-bc89-e94779b58a31">
+    <Platform Solution="*|ARM32" Project="AnyCPU" />
+    <Deploy />
+  </Project>
 </Solution>
