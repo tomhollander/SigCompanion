@@ -43,4 +43,5 @@ public sealed class SigenPlantInformation
     public decimal AvailableMaxDischargingCapacity { get; init; }
     public decimal RatedEssChargingPower { get; init; }
     public decimal RatedEssDischargingPower { get; init; }
+    public decimal TotalLoadPower { get; init; }
 }

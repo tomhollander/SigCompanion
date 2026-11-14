@@ -2,6 +2,7 @@
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
+    <File Path="sigenergy_v2_9_section_5_1_registers.csv" />
   </Folder>
   <Project Path="SigCompanion.Android/SigCompanion.Android.csproj">
     <Deploy />

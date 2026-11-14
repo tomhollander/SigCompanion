@@ -17,7 +17,7 @@
         <Border IsVisible="{Binding IsMainPageVisible}" Background="#000000">
             <Grid>
                 <Image Source="/Assets/app_logo.png" HorizontalAlignment="Center" VerticalAlignment="Top" Height="15" Opacity="0.8" Margin="0,5,0,0" />
-                <TextBlock Text="{Binding CurrentTimeText}" IsVisible="{Binding ShowClock}" Foreground="#808080" FontSize="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4,10,0,0" />
+                <TextBlock Text="{Binding CurrentTimeText}" IsVisible="{Binding ShowClock}" Foreground="#808080" FontSize="36" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4,10,0,0" />
 
                 <!-- 1. Large landscape (1000x800 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargeLandscapeLayout" IsVisible="False" Margin="12,24,12,12">

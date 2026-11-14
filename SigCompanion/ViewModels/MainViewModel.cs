@@ -771,12 +771,12 @@ namespace SigCompanion.ViewModels
 
         private void ApplyModbusPlantInformation(SigenPlantInformation plant)
         {
-            var gridPower = plant.GridSensorActivePower / 1000;
-            var pvPower = plant.PhotovoltaicPower / 1000;
-            var essPower = plant.EssPower / 1000;
-            var loadPower = pvPower + gridPower - essPower;
+            var gridPower = plant.GridSensorActivePower;
+            var pvPower = plant.PhotovoltaicPower;
+            var essPower = plant.EssPower;
+            var loadPower = plant.TotalLoadPower;
 
-            IsGridConnected = plant.OnOffGridStatus == 1;
+            IsGridConnected = plant.OnOffGridStatus == 0;
             BatterySocValue = (double)plant.EnergyStorageSystemSoc;
             BatterySoc = $"{plant.EnergyStorageSystemSoc:0}%";
             GridStatus = IsGridConnected ? "Connected" : "Disconnected";

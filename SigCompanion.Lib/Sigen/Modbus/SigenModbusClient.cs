@@ -7,9 +7,10 @@ namespace SigCompanion.Lib.Sigen.Modbus;
 
 public sealed class SigenModbusClient : IDisposable
 {
-    private const byte ReadInputRegistersFunction = 0x04;
+    private const byte ReadHoldingRegistersFunction = 0x03;
     private const ushort PlantInfoStartAddress = 30000;
     private const ushort PlantInfoRegisterCount = 72;
+    private const ushort TotalLoadPowerAddress = 30284;
     private const int MbapHeaderLength = 6;
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(20);
 
@@ -62,11 +63,13 @@ public sealed class SigenModbusClient : IDisposable
             AvailableMinReactivePower = -4000,
             AvailableMaxChargingPower = -5000,
             AvailableMaxDischargingPower = 5000,
-            PlantRunningState = 1
+            PlantRunningState = 1,
+            TotalLoadPower = Random.Shared.Next(0, 10000) - 5000
         };
 #endif
 
         var registers = await ReadInputRegistersAsync(PlantInfoStartAddress, PlantInfoRegisterCount, cancellationToken);
+        var totalLoadRegisters = await ReadInputRegistersAsync(TotalLoadPowerAddress, 2, cancellationToken);
 
         return new SigenPlantInformation
         {
@@ -110,7 +113,8 @@ public sealed class SigenModbusClient : IDisposable
             AvailableMaxChargingCapacity = ReadU32Scaled(registers, 30064, 100),
             AvailableMaxDischargingCapacity = ReadU32Scaled(registers, 30066, 100),
             RatedEssChargingPower = ReadU32Scaled(registers, 30068, 1000),
-            RatedEssDischargingPower = ReadU32Scaled(registers, 30070, 1000)
+            RatedEssDischargingPower = ReadU32Scaled(registers, 30070, 1000),
+            TotalLoadPower = (decimal)BinaryPrimitives.ReadInt32BigEndian(totalLoadRegisters) / 1000
         };
     }
 
@@ -128,7 +132,7 @@ public sealed class SigenModbusClient : IDisposable
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(2), 0);
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(4), 6);
         request[6] = _slaveAddress;
-        request[7] = ReadInputRegistersFunction;
+        request[7] = ReadHoldingRegistersFunction;
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(8), startAddress);
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(10), count);
 
@@ -175,13 +179,13 @@ public sealed class SigenModbusClient : IDisposable
 
     private static byte[] ParseResponse(byte[] body, ushort startAddress, ushort count)
     {
-        if (body[0] == (ReadInputRegistersFunction | 0x80))
+        if (body[0] == (ReadHoldingRegistersFunction | 0x80))
         {
             throw new IOException($"Modbus exception code {body[1]} reading registers starting at {startAddress}.");
         }
 
         var byteCount = body[1];
-        if (body[0] != ReadInputRegistersFunction || byteCount != count * 2)
+        if (body[0] != ReadHoldingRegistersFunction || byteCount != count * 2)
         {
             throw new IOException("Unexpected Modbus response.");
         }

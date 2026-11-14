@@ -1,0 +1,129 @@
+No,Name,Address,QTY,Permission,Data Type,Gain,Unit,Hybrid Inv,PV Inv,Comment
+1,System time,30000,2,RO,U32,1,s,Yes,Yes,Epoch seconds
+2,System time zone,30002,1,RO,S16,1,min,Yes,Yes,
+3,EMS work mode,30003,1,RO,U16,N/A,N/A,Yes,Yes,0: Max self consumption; 1: AI Mode; 2: TOU; 5: Full Feed-in to Grid; 7: Remote EMS mode; 9: Custom
+4,[Grid Sensor] Status,30004,1,RO,U16,N/A,N/A,Yes,Yes,(gateway or meter connection status) 0: not connected; 1: connected
+5,[Grid sensor] Active power,30005,2,RO,S32,1000,kW,Yes,Yes,Data collected from grid sensor at grid to system checkpoint; >0 buy from grid; <0 sell to grid
+6,[Grid sensor] Reactive power,30007,2,RO,S32,1000,kVar,Yes,Yes,Data collected from grid sensor at grid to system checkpoint
+7,On/Off Grid status,30009,1,RO,U16,N/A,N/A,Yes,No,0: on grid; 1: off grid (auto); 2: off grid (manual)
+8,Max active power,30010,2,RO,U32,1000,kW,Yes,Yes,This should be the base value of all active power adjustment actions
+9,Max apparent power,30012,2,RO,U32,1000,kVar,Yes,Yes,This should be the base value of all reactive power adjustment actions
+10,[ESS] SOC,30014,1,RO,U16,10,%,Yes,No,
+11,Plant phase A active power,30015,2,RO,S32,1000,kW,Yes,Yes,
+12,Plant phase B active power,30017,2,RO,S32,1000,kW,Yes,Yes,
+13,Plant phase C active power,30019,2,RO,S32,1000,kW,Yes,Yes,
+14,Plant phase A reactive power,30021,2,RO,S32,1000,kVar,Yes,Yes,
+15,Plant phase B reactive power,30023,2,RO,S32,1000,kVar,Yes,Yes,
+16,Plant phase C reactive power,30025,2,RO,S32,1000,kVar,Yes,Yes,
+17,Merged Alarm1,30027,1,RO,U16,N/A,N/A,Yes,Yes,"If any hybrid inverter has alarm, then this alarm will be set accordingly. Refer to Appendix 2"
+18,Merged Alarm2,30028,1,RO,U16,N/A,N/A,Yes,Yes,"If any hybrid inverter has alarm, then this alarm will be set accordingly. Refer to Appendix 3"
+19,Merged Alarm3,30029,1,RO,U16,N/A,N/A,Yes,No,"If any hybrid inverter has alarm, then this alarm will be set accordingly. Refer to Appendix 4"
+20,Merged Alarm4,30030,1,RO,U16,N/A,N/A,Yes,Yes,"If any hybrid inverter has alarm, then this alarm will be set accordingly. Refer to Appendix 5"
+21,Plant active power,30031,2,RO,S32,1000,kW,Yes,Yes,
+22,Plant reactive power,30033,2,RO,S32,1000,kVar,Yes,Yes,
+23,Photovoltaic power,30035,2,RO,S32,1000,kW,Yes,Yes,
+24,[ESS] Power,30037,2,RO,S32,1000,kW,Yes,No,<0: discharging; >0: charging
+25,Available max active power,30039,2,RO,U32,1000,kW,Yes,Yes,Feed to the ac terminal. Count only the running inverters
+26,Available min active power,30041,2,RO,U32,1000,kW,Yes,No,Absorb from the ac terminal. Count only the running inverters
+27,Available max reactive power,30043,2,RO,U32,1000,kVar,Yes,Yes,Feed to the ac terminal. Count only the running inverters
+28,Available min reactive power,30045,2,RO,U32,1000,kVar,Yes,Yes,Absorb from the ac terminal. Count only the running inverters
+29,[ESS] Available max charging power,30047,2,RO,U32,1000,kW,Yes,No,Count only the running inverters
+30,[ESS] Available max discharging power,30049,2,RO,U32,1000,kW,Yes,No,Count only the running inverters
+31,Plant running state,30051,1,RO,U16,N/A,N/A,Yes,Yes,Refer to Appendix 1
+32,[Grid sensor] Phase A active power,30052,2,RO,S32,1000,kW,Yes,Yes,Data collected from grid sensor at grid to system checkpoint; >0 buy from grid; <0 sell to grid
+33,[Grid sensor] Phase B active power,30054,2,RO,S32,1000,kW,Yes,Yes,Data collected from grid sensor at grid to system checkpoint; >0 buy from grid; <0 sell to grid
+34,[Grid sensor] Phase C active power,30056,2,RO,S32,1000,kW,Yes,Yes,Data collected from grid sensor at grid to system checkpoint; >0 buy from grid; <0 sell to grid
+35,[Grid sensor] Phase A reactive power,30058,2,RO,S32,1000,kVar,Yes,Yes,Data collected from grid sensor at grid to system checkpoint
+36,[Grid sensor] Phase B reactive power,30060,2,RO,S32,1000,kVar,Yes,Yes,Data collected from grid sensor at grid to system checkpoint
+37,[Grid sensor] Phase C reactive power,30062,2,RO,S32,1000,kVar,Yes,Yes,Data collected from grid sensor at grid to system checkpoint
+38,[ESS] Available max charging capacity,30064,2,RO,U32,100,kWh,Yes,No,Count only the running inverters
+39,[ESS] Available max discharging capacity,30066,2,RO,U32,100,kWh,Yes,No,Count only the running inverters
+40,[ESS] Rated charging power,30068,2,RO,U32,1000,kW,Yes,No,
+41,[ESS] Rated discharging power,30070,2,RO,U32,1000,kW,Yes,No,
+42,Merged Alarm5,30072,1,RO,U16,N/A,N/A,Yes,No,"If any hybrid inverter has alarm, then this alarm will be set accordingly. Refer to Appendix 11"
+43,Reserved,30073,10,RO,N/A,N/A,N/A,No,No,
+44,[ESS] Rated energy capacity,30083,2,RO,U32,100,kWh,Yes,No,
+45,[ESS] Charge Cut-Off SOC,30085,1,RO,U16,10,%,Yes,No,
+46,[ESS] Discharge Cut-Off SOC,30086,1,RO,U16,10,%,Yes,No,
+47,[ESS] SOH,30087,1,RO,U16,10,%,Yes,No,"This value is the weighted average of the SOH of all ESS devices in the power plant, with each rated capacity as the weight."
+48,Plant PV total generation,30088,4,RO,U64,100,kWh,Yes,Yes,
+49,Total load daily consumption,30092,2,RO,U32,100,kWh,Yes,Yes,
+50,Total load consumption,30094,4,RO,U64,100,kWh,Yes,Yes,
+51,[Smart load 1] Total consumption,30098,2,RO,U32,100,kWh,Yes,Yes,
+52,[Smart load 2] Total consumption,30100,2,RO,U32,100,kWh,Yes,Yes,
+53,[Smart load 3] Total consumption,30102,2,RO,U32,100,kWh,Yes,Yes,
+54,[Smart load 4] Total consumption,30104,2,RO,U32,100,kWh,Yes,Yes,
+55,[Smart load 5] Total consumption,30106,2,RO,U32,100,kWh,Yes,Yes,
+56,[Smart load 6] Total consumption,30108,2,RO,U32,100,kWh,Yes,Yes,
+57,[Smart load 7] Total consumption,30110,2,RO,U32,100,kWh,Yes,Yes,
+58,[Smart load 8] Total consumption,30112,2,RO,U32,100,kWh,Yes,Yes,
+59,[Smart load 9] Total consumption,30114,2,RO,U32,100,kWh,Yes,Yes,
+60,[Smart load 10] Total consumption,30116,2,RO,U32,100,kWh,Yes,Yes,
+61,[Smart load 11] Total consumption,30118,2,RO,U32,100,kWh,Yes,Yes,
+62,[Smart load 12] Total consumption,30120,2,RO,U32,100,kWh,Yes,Yes,
+63,[Smart load 13] Total consumption,30122,2,RO,U32,100,kWh,Yes,Yes,
+64,[Smart load 14] Total consumption,30124,2,RO,U32,100,kWh,Yes,Yes,
+65,[Smart load 15] Total consumption,30126,2,RO,U32,100,kWh,Yes,Yes,
+66,[Smart load 16] Total consumption,30128,2,RO,U32,100,kWh,Yes,Yes,
+67,[Smart load 17] Total consumption,30130,2,RO,U32,100,kWh,Yes,Yes,
+68,[Smart load 18] Total consumption,30132,2,RO,U32,100,kWh,Yes,Yes,
+69,[Smart load 19] Total consumption,30134,2,RO,U32,100,kWh,Yes,Yes,
+70,[Smart load 20] Total consumption,30136,2,RO,U32,100,kWh,Yes,Yes,
+71,[Smart load 21] Total consumption,30138,2,RO,U32,100,kWh,Yes,Yes,
+72,[Smart load 22] Total consumption,30140,2,RO,U32,100,kWh,Yes,Yes,
+73,[Smart load 23] Total consumption,30142,2,RO,U32,100,kWh,Yes,Yes,
+74,[Smart load 24] Total consumption,30144,2,RO,U32,100,kWh,Yes,Yes,
+75,[Smart load 1] Power,30146,2,RO,S32,1000,kW,Yes,Yes,
+76,[Smart load 2] Power,30148,2,RO,S32,1000,kW,Yes,Yes,
+77,[Smart load 3] Power,30150,2,RO,S32,1000,kW,Yes,Yes,
+78,[Smart load 4] Power,30152,2,RO,S32,1000,kW,Yes,Yes,
+79,[Smart load 5] Power,30154,2,RO,S32,1000,kW,Yes,Yes,
+80,[Smart load 6] Power,30156,2,RO,S32,1000,kW,Yes,Yes,
+81,[Smart load 7] Power,30158,2,RO,S32,1000,kW,Yes,Yes,
+82,[Smart load 8] Power,30160,2,RO,S32,1000,kW,Yes,Yes,
+83,[Smart load 9] Power,30162,2,RO,S32,1000,kW,Yes,Yes,
+84,[Smart load 10] Power,30164,2,RO,S32,1000,kW,Yes,Yes,
+85,[Smart load 11] Power,30166,2,RO,S32,1000,kW,Yes,Yes,
+86,[Smart load 12] Power,30168,2,RO,S32,1000,kW,Yes,Yes,
+87,[Smart load 13] Power,30170,2,RO,S32,1000,kW,Yes,Yes,
+88,[Smart load 14] Power,30172,2,RO,S32,1000,kW,Yes,Yes,
+89,[Smart load 15] Power,30174,2,RO,S32,1000,kW,Yes,Yes,
+90,[Smart load 16] Power,30176,2,RO,S32,1000,kW,Yes,Yes,
+91,[Smart load 17] Power,30178,2,RO,S32,1000,kW,Yes,Yes,
+92,[Smart load 18] Power,30180,2,RO,S32,1000,kW,Yes,Yes,
+93,[Smart load 19] Power,30182,2,RO,S32,1000,kW,Yes,Yes,
+94,[Smart load 20] Power,30184,2,RO,S32,1000,kW,Yes,Yes,
+95,[Smart load 21] Power,30186,2,RO,S32,1000,kW,Yes,Yes,
+96,[Smart load 22] Power,30188,2,RO,S32,1000,kW,Yes,Yes,
+97,[Smart load 23] Power,30190,2,RO,S32,1000,kW,Yes,Yes,
+98,[Smart load 24] Power,30192,2,RO,S32,1000,kW,Yes,Yes,
+99,Third Party inverter active power,30194,2,RO,S32,1000,kW,Yes,Yes,
+100,Total generation of third party inverter,30196,4,RO,U64,100,kWh,Yes,Yes,
+101,Total charged energy of the ESS,30200,4,RO,U64,100,kWh,Yes,Yes,
+102,Total discharged energy of the ESS,30204,4,RO,U64,100,kWh,Yes,Yes,
+103,Total charged energy of the EVDC,30208,4,RO,U64,100,kWh,Yes,Yes,
+104,Total discharged energy of the EVDC,30212,4,RO,U64,100,kWh,Yes,Yes,
+105,Total imported energy,30216,4,RO,U64,100,kWh,Yes,Yes,
+106,Total exported energy,30220,4,RO,U64,100,kWh,Yes,Yes,
+107,Total energy output of oil-fueled generator,30224,4,RO,U64,100,kWh,Yes,Yes,
+108,Total energy consumption of common loads,30228,4,RO,U64,100,kWh,Yes,Yes,"New statistics interface, excluding EVAC and EVDC charged energy."
+109,Total charged energy of the EVAC,30232,4,RO,U64,100,kWh,Yes,Yes,New statistics interface
+110,Total generation of self PV,30236,4,RO,U64,100,kWh,Yes,Yes,"New statistics interface, excluding generation of third party inverter"
+111,Total generation of third party inverter,30240,4,RO,U64,100,kWh,Yes,Yes,New statistics interface
+112,Total charged energy of the ESS,30244,4,RO,U64,100,kWh,Yes,Yes,New statistics interface
+113,Total discharged energy of the ESS,30248,4,RO,U64,100,kWh,Yes,No,New statistics interface
+114,Total charged energy of the EVDC,30252,4,RO,U64,100,kWh,Yes,No,New statistics interface
+115,Total discharged energy of the EVDC,30256,4,RO,U64,100,kWh,Yes,Yes,New statistics interface
+116,Total imported energy,30260,4,RO,U64,100,kWh,Yes,No,New statistics interface
+117,Total exported energy,30264,4,RO,U64,100,kWh,Yes,No,New statistics interface
+118,Total energy output of oil-fueled generator,30268,4,RO,U64,100,kWh,Yes,Yes,New statistics interface
+119,PV total daily generation,30272,2,RO,U32,100,kWh,Yes,Yes,
+120,PV total generation of previous day,30274,2,RO,U32,100,kWh,Yes,Yes,
+121,[Grid code] Rated Frequency,30276,1,RO,U16,100,Hz,Yes,Yes,
+122,[Grid code] Rated Voltage,30277,2,RO,U32,100,V,Yes,Yes,
+123,Current control command value,30279,1,RO,U16,100,%,Yes,Yes,Use of Remote Output Control in Japan
+124,Merged Alarm6,30280,1,RO,U16,N/A,N/A,Yes,Yes,Refer to Appendix 12
+125,Merged Alarm7,30281,1,RO,U16,N/A,N/A,Yes,Yes,Refer to Appendix 13
+126,General load power,30282,2,RO,S32,1000,kW,Yes,Yes,
+127,Total load power,30284,2,RO,S32,1000,kW,Yes,Yes,
+128,[ESS] Average cell temperature,30286,1,RO,S16,10,C,Yes,No,
