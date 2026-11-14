@@ -31,12 +31,15 @@ public sealed class PowerFlowDiagram : Control
     public static readonly StyledProperty<PowerFlowAllocation?> FlowsProperty =
         AvaloniaProperty.Register<PowerFlowDiagram, PowerFlowAllocation?>(nameof(Flows));
 
+    public static readonly StyledProperty<bool> EnableAnimationsProperty =
+        AvaloniaProperty.Register<PowerFlowDiagram, bool>(nameof(EnableAnimations), true);
+
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(33) };
     private double _elapsed;
 
     static PowerFlowDiagram()
     {
-        AffectsRender<PowerFlowDiagram>(FlowsProperty);
+        AffectsRender<PowerFlowDiagram>(FlowsProperty, EnableAnimationsProperty);
     }
 
     public PowerFlowDiagram()
@@ -51,13 +54,40 @@ public sealed class PowerFlowDiagram : Control
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        _timer.Start();
+        UpdateTimer();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
         _timer.Stop();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == EnableAnimationsProperty)
+        {
+            UpdateTimer();
+        }
+    }
+
+    private void UpdateTimer()
+    {
+        if (EnableAnimations && VisualRoot is not null)
+        {
+            _timer.Start();
+        }
+        else
+        {
+            _timer.Stop();
+        }
+    }
+
+    public bool EnableAnimations
+    {
+        get => GetValue(EnableAnimationsProperty);
+        set => SetValue(EnableAnimationsProperty, value);
     }
 
     public PowerFlowAllocation? Flows
@@ -157,7 +187,7 @@ public sealed class PowerFlowDiagram : Control
             return;
         }
 
-        var offset = _elapsed * FlowSpeed;
+        var offset = EnableAnimations ? _elapsed * FlowSpeed : 0d;
         Color ColorAt(double distance) => Lerp(fromColor, toColor, Triangle(Frac((distance - offset) / totalLength)));
 
         var trimmed = TrimEnd(points, ArrowLength);

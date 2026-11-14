@@ -17,7 +17,7 @@
         <Grid Width="260" Height="220" HorizontalAlignment="Center" VerticalAlignment="Top" Grid.Row="0">
             <Ellipse x:Name="background" Width="150" Height="150" Stroke="#202020" StrokeThickness="9" HorizontalAlignment="Center" VerticalAlignment="Center" />
             <Image Source="/Assets/flow-background.png" Width="170" Height="145" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            <controls:PowerFlowDiagram Width="175" Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Flows="{Binding PowerFlows}" />
+            <controls:PowerFlowDiagram Width="175" Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Flows="{Binding PowerFlows}" EnableAnimations="{Binding EnableAnimations}" />
             <TextBlock Text="{Binding FlowSolarText}" Foreground="#FFC400" FontSize="42" HorizontalAlignment="Left" VerticalAlignment="Top" />
             <TextBlock Text="{Binding FlowGridText}" Foreground="#FFFFFF" FontSize="42" HorizontalAlignment="Right" VerticalAlignment="Top" />
             <TextBlock Text="{Binding FlowBatteryText}" Foreground="#3CC83C" FontSize="42" HorizontalAlignment="Left" VerticalAlignment="Bottom" />

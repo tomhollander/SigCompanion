@@ -13,6 +13,7 @@ public sealed class AppSettings
     public string? SystemId { get; set; }
     public bool ShowClock { get; set; }
     public bool CyclePagesWhenIdle { get; set; }
+    public bool EnableAnimations { get; set; } = true;
     public string ChartData { get; set; } = "Power";
     public bool UseModbus { get; set; }
     public string? ModbusHost { get; set; }

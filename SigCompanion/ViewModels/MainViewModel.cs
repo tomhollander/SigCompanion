@@ -286,6 +286,20 @@ namespace SigCompanion.ViewModels
             }
         }
 
+        private bool enableAnimations = true;
+        public bool EnableAnimations
+        {
+            get => enableAnimations;
+            set
+            {
+                if (SetProperty(ref enableAnimations, value))
+                {
+                    _settings.EnableAnimations = value;
+                    _settingsStore.Save(_settings);
+                }
+            }
+        }
+
         public string[] ChartDataOptions { get; } = ["Power", "Battery SoC", "Both"];
 
         private string chartData = "Power";
@@ -403,6 +417,7 @@ namespace SigCompanion.ViewModels
             SavePassword = _settings.SavePassword;
             ShowClock = _settings.ShowClock;
             CyclePagesWhenIdle = _settings.CyclePagesWhenIdle;
+            EnableAnimations = _settings.EnableAnimations;
             ChartData = _settings.ChartData;
             UseModbus = _settings.UseModbus;
             ModbusHost = _settings.ModbusHost;
@@ -536,6 +551,7 @@ namespace SigCompanion.ViewModels
             {
                 ShowClock = _settings.ShowClock,
                 CyclePagesWhenIdle = _settings.CyclePagesWhenIdle,
+                EnableAnimations = _settings.EnableAnimations,
                 ChartData = _settings.ChartData,
                 UseModbus = _settings.UseModbus,
                 ModbusHost = _settings.ModbusHost,
@@ -904,7 +920,7 @@ namespace SigCompanion.ViewModels
                     YToolTipLabelFormatter = point =>
                     {
                         var time = new DateTime((long)point.Coordinate.SecondaryValue);
-                        return $"{Math.Abs(underlyingSelector(time)):0.##} kW";
+                        return $"{underlyingSelector(time):0.##} kW";
                     },
                 };
             }
@@ -919,8 +935,8 @@ namespace SigCompanion.ViewModels
 
             historicalPowerLineSeries =
             [
-                CreateSeries("Grid", "#CCCCCC", times, t => Sun(t) + BatteryDischarge(t) + GridImport(t), t => GridImport(t)),
-                CreateSeries("Battery", "#3CC83C", times, t => Sun(t) + BatteryDischarge(t), t => BatteryDischarge(t)),
+                CreateSeries("Grid", "#CCCCCC", times, t => Sun(t) + BatteryDischarge(t) + GridImport(t), t => GridImport(t) + GridExport(t)),
+                CreateSeries("Battery", "#3CC83C", times, t => Sun(t) + BatteryDischarge(t), t => BatteryDischarge(t) + BatteryCharge(t)),
                 CreateSeries("Solar", "#E0B800", times, t => Sun(t), t => Sun(t)),
                 CreateSeries("Grid", "#CCCCCC", times, t => BatteryCharge(t) + Home(t) + Evac(t) + GridExport(t), t => GridExport(t), showInLegend: false),
                 CreateSeries("Home", "#2AA7E0", times, t => BatteryCharge(t) + Home(t) + Evac(t), t => Home(t)),

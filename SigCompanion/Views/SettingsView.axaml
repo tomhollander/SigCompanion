@@ -45,6 +45,7 @@
                         <TextBlock Text="Features" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
                         <ToggleSwitch Content="Show clock" Foreground="#FFFFFF" IsChecked="{Binding ShowClock, Mode=TwoWay}" />
                         <ToggleSwitch Content="Cycle pages when idle" Foreground="#FFFFFF" IsChecked="{Binding CyclePagesWhenIdle, Mode=TwoWay}" />
+                        <ToggleSwitch Content="Enable animations" Foreground="#FFFFFF" IsChecked="{Binding EnableAnimations, Mode=TwoWay}" />
                         <StackPanel Spacing="6">
                             <TextBlock Text="Chart data" Foreground="#BEBEBE" />
                             <ComboBox ItemsSource="{Binding ChartDataOptions}" SelectedItem="{Binding ChartData, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260" />

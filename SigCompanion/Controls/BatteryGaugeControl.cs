@@ -12,6 +12,26 @@ public sealed class BatteryGaugeControl : Control
     private const double MinimumPower = 0.1;
     private const double AnimationDuration = 1d;
     private const double AnimationPause = 3d;
+    private const double StartAngle = 99d;
+    private const double TotalSweep = 342d;
+    private const int Segments = 10;
+    private const double SegmentSweep = TotalSweep / Segments;
+    private const double GapDegrees = 2.4d;
+
+    private readonly record struct RingKey(double Width, double Height, double SocPercent, bool IsGridConnected);
+
+    private readonly record struct RingLayout(Point Center, double Radius, double RingThickness, double Size)
+    {
+        public static RingLayout Create(double width, double height)
+        {
+            var size = Math.Min(width, height);
+            return new RingLayout(
+                new Point(width / 2d, height / 2d),
+                size * 0.38d,
+                Math.Max(8d * 2d / 3d, size * 0.12d * 2d / 3d),
+                size);
+        }
+    }
 
     public static readonly StyledProperty<double> StateOfChargeProperty =
         AvaloniaProperty.Register<BatteryGaugeControl, double>(nameof(StateOfCharge), 0d);
@@ -22,12 +42,28 @@ public sealed class BatteryGaugeControl : Control
     public static readonly StyledProperty<double> BatteryPowerProperty =
         AvaloniaProperty.Register<BatteryGaugeControl, double>(nameof(BatteryPower), 0d);
 
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(33) };
+    public static readonly StyledProperty<bool> EnableAnimationsProperty =
+        AvaloniaProperty.Register<BatteryGaugeControl, bool>(nameof(EnableAnimations), true);
+
+    private static readonly Color GreenColor = Color.Parse("#2BD640");
+    private static readonly Color AmberColor = Color.Parse("#F9A825");
+    private static readonly IBrush GreenBrush = new SolidColorBrush(GreenColor);
+    private static readonly IBrush AmberBrush = new SolidColorBrush(AmberColor);
+    private static readonly IBrush DarkGreenBrush = new SolidColorBrush(Darken(GreenColor, 0.6d));
+    private static readonly IBrush DarkAmberBrush = new SolidColorBrush(Darken(AmberColor, 0.6d));
+    private static readonly IBrush InactiveBrush = new SolidColorBrush(Color.Parse("#7A7A7A"));
+    private static readonly IBrush DividerBrush = new SolidColorBrush(Color.Parse("#161616"));
+
+    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(67) };
+    private readonly Pen _activePen = new() { LineCap = PenLineCap.Flat };
+    private DrawingGroup _backgroundRing = new();
+    private DrawingGroup _foregroundRing = new();
+    private RingKey? _ringKey;
     private double _elapsed;
 
     static BatteryGaugeControl()
     {
-        AffectsRender<BatteryGaugeControl>(StateOfChargeProperty, IsGridConnectedProperty, BatteryPowerProperty);
+        AffectsRender<BatteryGaugeControl>(StateOfChargeProperty, IsGridConnectedProperty, BatteryPowerProperty, EnableAnimationsProperty);
     }
 
     public BatteryGaugeControl()
@@ -42,7 +78,7 @@ public sealed class BatteryGaugeControl : Control
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        _timer.Start();
+        UpdateTimer();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -51,10 +87,38 @@ public sealed class BatteryGaugeControl : Control
         _timer.Stop();
     }
 
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == BatteryPowerProperty || change.Property == EnableAnimationsProperty)
+        {
+            UpdateTimer();
+        }
+    }
+
+    private void UpdateTimer()
+    {
+        var isMoving = EnableAnimations && VisualRoot is not null && Math.Abs(BatteryPower) >= MinimumPower;
+        if (isMoving)
+        {
+            _timer.Start();
+        }
+        else
+        {
+            _timer.Stop();
+        }
+    }
+
     public double BatteryPower
     {
         get => GetValue(BatteryPowerProperty);
         set => SetValue(BatteryPowerProperty, value);
+    }
+
+    public bool EnableAnimations
+    {
+        get => GetValue(EnableAnimationsProperty);
+        set => SetValue(EnableAnimationsProperty, value);
     }
 
     public double StateOfCharge
@@ -81,118 +145,154 @@ public sealed class BatteryGaugeControl : Control
             return;
         }
 
-        var center = new Point(width / 2d, height / 2d);
-        var radius = size * 0.38d;
-        var ringThickness = Math.Max(8d * 2d / 3d, size * 0.12d * 2d / 3d);
-
-        var startAngle = 99d;
-        var totalSweep = 342d;
-        const int segments = 10;
-        var gapDegrees = 2.4d;
-
-        var activeColor = IsGridConnected
-            ? Color.Parse("#2BD640")
-            : Color.Parse("#F9A825");
-
-        var inactivePen = new Pen
-        {
-            Brush = new SolidColorBrush(Color.Parse("#7A7A7A")),
-            Thickness = ringThickness,
-            LineCap = PenLineCap.Flat,
-        };
-
-        var activePen = new Pen
-        {
-            Brush = new SolidColorBrush(activeColor),
-            Thickness = ringThickness,
-            LineCap = PenLineCap.Flat,
-        };
-
-        var dividerPen = new Pen
-        {
-            Brush = new SolidColorBrush(Color.Parse("#161616")),
-            Thickness = Math.Max(2d, ringThickness * 0.12d),
-            LineCap = PenLineCap.Round,
-        };
-
         var clampedSoc = Math.Clamp(StateOfCharge, 0d, 100d);
-        var segmentSweep = totalSweep / segments;
+        var key = new RingKey(width, height, clampedSoc, IsGridConnected);
+        var layout = RingLayout.Create(width, height);
+        if (_ringKey != key)
+        {
+            _ringKey = key;
+            _backgroundRing = BuildBackgroundRing(layout, clampedSoc, IsGridConnected);
+            _foregroundRing = BuildForegroundRing(layout, IsGridConnected);
+        }
 
-        var darkColor = Darken(activeColor, 0.6d);
+        _backgroundRing.Draw(context);
+
+        var activePen = _activePen;
+        activePen.Brush = IsGridConnected ? GreenBrush : AmberBrush;
+        activePen.Thickness = layout.RingThickness;
+
         var fillSoc = clampedSoc;
         var cycle = AnimationDuration + AnimationPause;
         var phase = _elapsed % cycle;
-        var isMoving = Math.Abs(BatteryPower) >= MinimumPower && phase < AnimationDuration;
+        var isMoving = EnableAnimations && Math.Abs(BatteryPower) >= MinimumPower && phase < AnimationDuration;
         if (isMoving)
         {
             var progress = phase / AnimationDuration;
             fillSoc = BatteryPower < 0 ? clampedSoc * progress : clampedSoc * (1d - progress);
         }
 
-        var darkPen = new Pen
+        for (var i = 0; i < Segments; i++)
         {
-            Brush = new SolidColorBrush(darkColor),
-            Thickness = ringThickness,
-            LineCap = PenLineCap.Flat,
-        };
+            var segmentStart = StartAngle + i * SegmentSweep + GapDegrees / 2d;
+            var segmentEnd = StartAngle + (i + 1) * SegmentSweep - GapDegrees / 2d;
 
-        activePen.Brush = new SolidColorBrush(activeColor);
-
-        for (var i = 0; i < segments; i++)
-        {
-            var segmentStart = startAngle + i * segmentSweep + gapDegrees / 2d;
-            var segmentEnd = startAngle + (i + 1) * segmentSweep - gapDegrees / 2d;
-            DrawArc(context, center, radius, segmentStart, segmentEnd, inactivePen);
-
-            var segmentMinPercent = i * 10d;
-            var coveredPercent = Math.Clamp(clampedSoc - segmentMinPercent, 0d, 10d);
-            if (coveredPercent > 0d)
-            {
-                var darkSweep = (segmentEnd - segmentStart) * (coveredPercent / 10d);
-                DrawArc(context, center, radius, segmentStart, segmentStart + darkSweep, darkPen);
-            }
-
-            var fillPercent = Math.Clamp(fillSoc - segmentMinPercent, 0d, 10d);
+            var fillPercent = Math.Clamp(fillSoc - i * 10d, 0d, 10d);
             if (fillPercent <= 0d)
             {
                 continue;
             }
 
             var activeSegmentSweep = (segmentEnd - segmentStart) * (fillPercent / 10d);
-            DrawArc(context, center, radius, segmentStart, segmentStart + activeSegmentSweep, activePen);
+            DrawArc(context, layout.Center, layout.Radius, segmentStart, segmentStart + activeSegmentSweep, activePen);
         }
 
-        for (var i = 0; i <= 10; i++)
-        {
-            var angleDegrees = startAngle + i * segmentSweep;
-            var angle = DegreesToRadians(angleDegrees);
-
-            var innerPoint = new Point(
-                center.X + Math.Cos(angle) * (radius - ringThickness * 0.62d),
-                center.Y + Math.Sin(angle) * (radius - ringThickness * 0.62d));
-
-            var outerPoint = new Point(
-                center.X + Math.Cos(angle) * (radius + ringThickness * 0.62d),
-                center.Y + Math.Sin(angle) * (radius + ringThickness * 0.62d));
-
-            context.DrawLine(dividerPen, innerPoint, outerPoint);
-        }
-
-        var innerCirclePen = new Pen
-        {
-            Brush = new SolidColorBrush(activeColor),
-            Thickness = Math.Max(2d, size * 0.014d),
-        };
-        context.DrawEllipse(null, innerCirclePen, center, radius - ringThickness * 0.94d, radius - ringThickness * 0.94d);
+        _foregroundRing.Draw(context);
 
         // center content (icons/text) is layered in XAML for now.
     }
 
+    private static DrawingGroup BuildBackgroundRing(RingLayout layout, double clampedSoc, bool isGridConnected)
+    {
+        var group = new DrawingGroup();
+        var darkPen = new Pen
+        {
+            Brush = isGridConnected ? DarkGreenBrush : DarkAmberBrush,
+            Thickness = layout.RingThickness,
+            LineCap = PenLineCap.Flat,
+        };
+        var inactivePen = new Pen
+        {
+            Brush = InactiveBrush,
+            Thickness = layout.RingThickness,
+            LineCap = PenLineCap.Flat,
+        };
+
+        for (var i = 0; i < Segments; i++)
+        {
+            var segmentStart = StartAngle + i * SegmentSweep + GapDegrees / 2d;
+            var segmentEnd = StartAngle + (i + 1) * SegmentSweep - GapDegrees / 2d;
+            AddArc(group, layout.Center, layout.Radius, segmentStart, segmentEnd, inactivePen);
+
+            var coveredPercent = Math.Clamp(clampedSoc - i * 10d, 0d, 10d);
+            if (coveredPercent > 0d)
+            {
+                var darkSweep = (segmentEnd - segmentStart) * (coveredPercent / 10d);
+                AddArc(group, layout.Center, layout.Radius, segmentStart, segmentStart + darkSweep, darkPen);
+            }
+        }
+
+        return group;
+    }
+
+    private static DrawingGroup BuildForegroundRing(RingLayout layout, bool isGridConnected)
+    {
+        var group = new DrawingGroup();
+        var dividerPen = new Pen
+        {
+            Brush = DividerBrush,
+            Thickness = Math.Max(2d, layout.RingThickness * 0.12d),
+            LineCap = PenLineCap.Round,
+        };
+        var innerCirclePen = new Pen
+        {
+            Brush = isGridConnected ? GreenBrush : AmberBrush,
+            Thickness = Math.Max(2d, layout.Size * 0.014d),
+        };
+
+        var dividers = new StreamGeometry();
+        using (var stream = dividers.Open())
+        {
+            for (var i = 0; i <= Segments; i++)
+            {
+                var angle = DegreesToRadians(StartAngle + i * SegmentSweep);
+                var innerPoint = new Point(
+                    layout.Center.X + Math.Cos(angle) * (layout.Radius - layout.RingThickness * 0.62d),
+                    layout.Center.Y + Math.Sin(angle) * (layout.Radius - layout.RingThickness * 0.62d));
+                var outerPoint = new Point(
+                    layout.Center.X + Math.Cos(angle) * (layout.Radius + layout.RingThickness * 0.62d),
+                    layout.Center.Y + Math.Sin(angle) * (layout.Radius + layout.RingThickness * 0.62d));
+
+                stream.BeginFigure(innerPoint, false);
+                stream.LineTo(outerPoint);
+                stream.EndFigure(false);
+            }
+        }
+
+        group.Children.Add(new GeometryDrawing { Geometry = dividers, Pen = dividerPen });
+
+        var innerRadius = layout.Radius - layout.RingThickness * 0.94d;
+        group.Children.Add(new GeometryDrawing
+        {
+            Geometry = new EllipseGeometry { Rect = new Rect(layout.Center.X - innerRadius, layout.Center.Y - innerRadius, innerRadius * 2d, innerRadius * 2d) },
+            Pen = innerCirclePen,
+        });
+
+        return group;
+    }
+
     private static void DrawArc(DrawingContext context, Point center, double radius, double startAngle, double endAngle, Pen pen)
+    {
+        var geometry = CreateArcGeometry(center, radius, startAngle, endAngle);
+        if (geometry is not null)
+        {
+            context.DrawGeometry(null, pen, geometry);
+        }
+    }
+
+    private static void AddArc(DrawingGroup group, Point center, double radius, double startAngle, double endAngle, Pen pen)
+    {
+        var geometry = CreateArcGeometry(center, radius, startAngle, endAngle);
+        if (geometry is not null)
+        {
+            group.Children.Add(new GeometryDrawing { Geometry = geometry, Pen = pen });
+        }
+    }
+
+    private static StreamGeometry? CreateArcGeometry(Point center, double radius, double startAngle, double endAngle)
     {
         if (endAngle <= startAngle)
         {
-            return;
+            return null;
         }
 
         var start = PointOnCircle(center, radius, startAngle);
@@ -207,7 +307,7 @@ public sealed class BatteryGaugeControl : Control
             stream.EndFigure(false);
         }
 
-        context.DrawGeometry(null, pen, geometry);
+        return geometry;
     }
 
     private static Point PointOnCircle(Point center, double radius, double degrees)

@@ -164,6 +164,7 @@ namespace SigCompanion
                 { "UseModbus", settings.UseModbus.ToString() },
                 { "ShowClock", settings.ShowClock.ToString() },
                 { "CyclePagesWhenIdle", settings.CyclePagesWhenIdle.ToString() },
+                { "EnableAnimations", settings.EnableAnimations.ToString() },
                 { "ChartData", settings.ChartData },
                 { "Region", settings.Region ?? string.Empty },
                 { "SavePassword", settings.SavePassword.ToString() }
