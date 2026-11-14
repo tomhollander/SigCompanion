@@ -1,4 +1,4 @@
-#define SIMULATE_MODBUS
+// #define SIMULATE_MODBUS
 using System.Buffers.Binary;
 using System.Net.Sockets;
 using SigCompanion.Lib.Sigen.Models;

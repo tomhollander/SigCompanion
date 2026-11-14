@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading;
@@ -396,6 +397,7 @@ namespace SigCompanion.ViewModels
         private async Task InitializeAsync()
         {
             _settings = _settingsStore.Load();
+            Telemetry.StartSession(() => _settings);
             Username = _settings.Username ?? string.Empty;
             Password = _settings.Password ?? string.Empty;
             SavePassword = _settings.SavePassword;
@@ -678,6 +680,7 @@ namespace SigCompanion.ViewModels
                 {
                     IsCloudApiUnavailable = true;
                     Debug.WriteLine($"Dashboard poll failed: {ex}");
+                    Telemetry.TrackException(ex);
                     StatusMessage = ex.Message;
                     CloudUnavailableError = "Unable to reach the Sigenergy API. Last error: " + ex.Message;
 
@@ -732,6 +735,10 @@ namespace SigCompanion.ViewModels
                     IsModbusUnavailable = true;
                     ModbusUnavailableError = "Unable to reach the Modbus interface. Last error: " + ex.Message;
                     Debug.WriteLine($"Modbus poll failed: {ex}");
+                    if (!(ex is SocketException || ex is TimeoutException))
+                    {
+                        Telemetry.TrackException(ex);
+                    }
                     delay = TimeSpan.FromMinutes(1);
                 }
 
@@ -1027,29 +1034,7 @@ namespace SigCompanion.ViewModels
 
         public string VersionText
         {
-            get
-            {
-                var assembly = typeof(App).Assembly;
-                string version = "";
-
-                // Reads InformationalVersion (supports semantic versioning like "1.2.0-beta.1")
-                var infoVersion = assembly
-                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                    .InformationalVersion;
-
-                if (!string.IsNullOrEmpty(infoVersion))
-                {
-                    // Strip the git commit hash suffix added automatically by .NET 8+ SDKs (e.g., "1.2.0+abc1234")
-                    var plusIndex = infoVersion.IndexOf('+');
-                    version = plusIndex > 0 ? infoVersion[..plusIndex] : infoVersion;
-                }
-                else
-                {
-                    version = assembly.GetName().Version?.ToString(3) ?? "1.0.0";
-                }
-
-                return "Version " + version;
-            }
+            get => "Version " + Telemetry.AppVersion;
         }
     }
 }

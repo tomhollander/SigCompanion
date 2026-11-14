@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using SigCompanion.ViewModels;
 using SigCompanion.Views;
+using System;
 
 namespace SigCompanion
 {
@@ -20,6 +22,15 @@ namespace SigCompanion
 
         public override void OnFrameworkInitializationCompleted()
         {
+            AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            {
+                if (e.ExceptionObject is Exception ex)
+                {
+                    Telemetry.TrackUnhandledException(ex);
+                }
+            };
+            Dispatcher.UIThread.UnhandledException += (_, e) => Telemetry.TrackUnhandledException(e.Exception);
+
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 desktop.MainWindow = new MainWindow
