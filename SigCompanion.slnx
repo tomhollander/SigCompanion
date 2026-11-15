@@ -10,13 +10,14 @@
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
+    <File Path="README.md" />
     <File Path="sigenergy_v2_9_section_5_1_registers.csv" />
   </Folder>
   <Project Path="SigCompanion.Android/SigCompanion.Android.csproj">
     <Deploy Solution="*|Any CPU" />
+    <Deploy Solution="*|ARM64" />
     <Deploy Solution="*|x64" />
     <Deploy Solution="Debug|ARM32" />
-    <Deploy Solution="Release|ARM64" />
   </Project>
   <Project Path="SigCompanion.Browser/SigCompanion.Browser.csproj" />
   <Project Path="SigCompanion.Desktop/SigCompanion.Desktop.csproj">
@@ -25,10 +26,10 @@
     <Platform Solution="Release|ARM64" Project="ARM64" />
   </Project>
   <Project Path="SigCompanion.iOS/SigCompanion.iOS.csproj">
+    <Deploy Solution="*|Any CPU" />
+    <Deploy Solution="*|ARM64" />
     <Deploy Solution="*|x64" />
     <Deploy Solution="Debug|ARM32" />
-    <Deploy Solution="Release|Any CPU" />
-    <Deploy Solution="Release|ARM64" />
   </Project>
   <Project Path="SigCompanion.Lib/SigCompanion.Lib.csproj" />
   <Project Path="SigCompanion/SigCompanion.csproj" />
