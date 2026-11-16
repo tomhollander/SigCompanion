@@ -36,6 +36,7 @@ namespace SigCompanion.ViewModels
         private bool _modbusHealthy;
         private bool _isAuthenticated;
         private bool _isDemoMode;
+        private bool _isDeactivated;
         private readonly DispatcherTimer _clockTimer;
 
         public MainViewModel()
@@ -627,6 +628,29 @@ namespace SigCompanion.ViewModels
             StartPolling(value.SystemId);
         }
 
+        public void OnApplicationDeactivated()
+        {
+            _isDeactivated = true;
+            StopPolling();
+        }
+
+        public void OnApplicationActivated()
+        {
+            if (!_isDeactivated)
+            {
+                return;
+            }
+
+            _isDeactivated = false;
+
+            if (!_isAuthenticated || SelectedSystem is null)
+            {
+                return;
+            }
+
+            StartPolling(SelectedSystem.SystemId);
+        }
+
         private void StartPolling(string systemId)
         {
             StopPolling();
@@ -709,20 +733,11 @@ namespace SigCompanion.ViewModels
                     Telemetry.TrackException(ex);
                     StatusMessage = ex.Message;
                     CloudUnavailableError = "Unable to reach the Sigenergy API. Last error: " + ex.Message;
-
-                    // For testing
-                    //PowerFlows = new PowerFlowAllocation
-                    //{
-                    //    SolarPower = (double)10,
-                    //    HomePower = (double)10,
-                    //    GridPower = -(double)-10,
-                    //    BatteryPower = -(double)-10
-                    //};
                 }
 
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                    await Task.Delay(TimeSpan.FromSeconds(120), cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {

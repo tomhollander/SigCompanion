@@ -25,6 +25,18 @@ namespace SigCompanion.Android
             BackRequested += OnBackRequested;
         }
 
+        protected override void OnPause()
+        {
+            base.OnPause();
+            App.MainViewModel?.OnApplicationDeactivated();
+        }
+
+        protected override void OnResume()
+        {
+            base.OnResume();
+            App.MainViewModel?.OnApplicationActivated();
+        }
+
         private void OnBackRequested(object? sender, AndroidBackRequestedEventArgs e)
         {
             if (App.MainViewModel is { IsSettingsPageVisible: true } viewModel)

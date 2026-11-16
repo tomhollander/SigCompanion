@@ -1,5 +1,5 @@
 ﻿<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:vm="using:SigCompanion.ViewModels" xmlns:models="using:SigCompanion.Lib.Sigen.Models" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SigCompanion.Views.SettingsView" x:DataType="vm:MainViewModel">
-    <Border Background="#000000" Padding="8" MaxWidth="600">
+    <Border Background="#000000" Padding="12">
         <Grid RowDefinitions="Auto,*" RowSpacing="20">
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                 <Button Grid.Column="0" Content="◁" Command="{Binding BackToMainCommand}" Padding="8" />
@@ -7,7 +7,7 @@
                 <Button Grid.Column="2" Content="Sign Out" Command="{Binding SignOutCommand}" Padding="14,8" />
             </Grid>
             <ScrollViewer Grid.Row="1"  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <Border Background="#101010" CornerRadius="8" Padding="12">
+                <Border Background="#101010" CornerRadius="8" Padding="12" MaxWidth="600">
                 
                     <StackPanel Spacing="14">
                         <TextBlock Text="{Binding Username, StringFormat='Signed in as {0}'}" Foreground="#BEBEBE" FontSize="16" TextWrapping="Wrap" />
