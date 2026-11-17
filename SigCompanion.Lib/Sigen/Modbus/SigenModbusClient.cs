@@ -11,6 +11,7 @@ public sealed class SigenModbusClient : IDisposable
     private const ushort PlantInfoStartAddress = 30000;
     private const ushort PlantInfoRegisterCount = 72;
     private const ushort TotalLoadPowerAddress = 30284;
+    private const ushort ThirdPartyInverterActivePowerAddress = 30194;
     private const int MbapHeaderLength = 6;
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(20);
 
@@ -64,12 +65,14 @@ public sealed class SigenModbusClient : IDisposable
             AvailableMaxChargingPower = -5000,
             AvailableMaxDischargingPower = 5000,
             PlantRunningState = 1,
-            TotalLoadPower = Random.Shared.Next(0, 10000) - 5000
+            TotalLoadPower = Random.Shared.Next(0, 10000) - 5000,
+            ThirdPartyInverterActivePower = Random.Shared.Next(0, 10000) - 5000
         };
 #endif
 
         var registers = await ReadInputRegistersAsync(PlantInfoStartAddress, PlantInfoRegisterCount, cancellationToken);
         var totalLoadRegisters = await ReadInputRegistersAsync(TotalLoadPowerAddress, 2, cancellationToken);
+        var thirdPartyInverterRegisters = await ReadInputRegistersAsync(ThirdPartyInverterActivePowerAddress, 2, cancellationToken);
 
         return new SigenPlantInformation
         {
@@ -114,7 +117,8 @@ public sealed class SigenModbusClient : IDisposable
             AvailableMaxDischargingCapacity = ReadU32Scaled(registers, 30066, 100),
             RatedEssChargingPower = ReadU32Scaled(registers, 30068, 1000),
             RatedEssDischargingPower = ReadU32Scaled(registers, 30070, 1000),
-            TotalLoadPower = (decimal)BinaryPrimitives.ReadInt32BigEndian(totalLoadRegisters) / 1000
+            TotalLoadPower = (decimal)BinaryPrimitives.ReadInt32BigEndian(totalLoadRegisters) / 1000,
+            ThirdPartyInverterActivePower = (decimal)BinaryPrimitives.ReadInt32BigEndian(thirdPartyInverterRegisters) / 1000
         };
     }
 

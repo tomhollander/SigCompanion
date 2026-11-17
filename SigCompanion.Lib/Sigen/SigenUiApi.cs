@@ -85,15 +85,29 @@ public sealed class SigenUiApi
         var requiredSystemId = RequireArgument(systemId, nameof(systemId));
         var energyFlow = await GetEnergyFlowDataAsync(requiredSystemId, cancellationToken).ConfigureAwait(false);
 
+        var pvPower = RequirePowerValue(energyFlow.PvPower, "pvPower");
+        var gridPower = RequirePowerValue(energyFlow.GridPower, "gridPower");
+        var evPower = RequirePowerValue(energyFlow.EvPower, "evPower");
+        var acPower = RequirePowerValue(energyFlow.AcPower, "acPower");
+        var loadPower = RequirePowerValue(energyFlow.LoadPower, "loadPower");
+        var heatPumpPower = RequirePowerValue(energyFlow.HeatPumpPower, "heatPumpPower");
+        var batteryPower = RequirePowerValue(energyFlow.BatteryPower, "batteryPower");
+
+        if (pvPower == 0m)
+        {
+            var homePower = loadPower + evPower + acPower + heatPumpPower;
+            pvPower = Math.Max(0m, homePower + gridPower + batteryPower);
+        }
+
         return new SigenPowerFlowSnapshot
         {
-            PvPower = RequirePowerValue(energyFlow.PvPower, "pvPower"),
-            GridPower = RequirePowerValue(energyFlow.GridPower, "gridPower"),
-            EvPower = RequirePowerValue(energyFlow.EvPower, "evPower"),
-            AcPower = RequirePowerValue(energyFlow.AcPower, "acPower"),
-            LoadPower = RequirePowerValue(energyFlow.LoadPower, "loadPower"),
-            HeatPumpPower = RequirePowerValue(energyFlow.HeatPumpPower, "heatPumpPower"),
-            BatteryPower = RequirePowerValue(energyFlow.BatteryPower, "batteryPower"),
+            PvPower = pvPower,
+            GridPower = gridPower,
+            EvPower = evPower,
+            AcPower = acPower,
+            LoadPower = loadPower,
+            HeatPumpPower = heatPumpPower,
+            BatteryPower = batteryPower,
         };
     }
 

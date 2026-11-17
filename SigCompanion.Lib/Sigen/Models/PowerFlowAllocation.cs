@@ -44,8 +44,15 @@ public sealed class PowerFlowAllocation
         }
     }
 
-    public double SolarToGrid =>
-        Math.Max(0, SolarPower - SolarToHome - SolarToBattery);
+    public double SolarToGrid
+    {
+        get
+        {
+            var gridExport = Math.Max(0, -GridPower);
+            var solarSurplus = Math.Max(0, SolarPower - SolarToHome - SolarToBattery);
+            return Math.Min(solarSurplus, gridExport);
+        }
+    }
 
     public double BatteryToHome
     {

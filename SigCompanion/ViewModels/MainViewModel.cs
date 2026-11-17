@@ -699,8 +699,8 @@ namespace SigCompanion.ViewModels
 
             HomeYesterdayKwh = Yesterday("TO_LOAD");
             HomeTodayKwh = Today("TO_LOAD");
-            SolarYesterdayKwh = Yesterday("FROM_SOLAR");
-            SolarTodayKwh = Today("FROM_SOLAR");
+            SolarYesterdayKwh = Yesterday("FROM_SOLAR") + Yesterday("FROM_THIRD_PARTY_INV");
+            SolarTodayKwh = Today("FROM_SOLAR") + Today("FROM_THIRD_PARTY_INV");
             GridImportYesterdayKwh = Yesterday("FROM_GRID");
             GridImportTodayKwh = Today("FROM_GRID");
             GridExportYesterdayKwh = Yesterday("TO_GRID");
@@ -797,7 +797,7 @@ namespace SigCompanion.ViewModels
         private void ApplyModbusPlantInformation(SigenPlantInformation plant)
         {
             var gridPower = plant.GridSensorActivePower;
-            var pvPower = plant.PhotovoltaicPower;
+            var pvPower = plant.PhotovoltaicPower + plant.ThirdPartyInverterActivePower;
             var essPower = plant.EssPower;
             var loadPower = plant.TotalLoadPower;
 
@@ -821,13 +821,13 @@ namespace SigCompanion.ViewModels
                 SolarPower = (double)pvPower,
                 HomePower = (double)loadPower,
                 GridPower = (double)gridPower,
-                BatteryPower = (double)essPower
+                BatteryPower = -(double)essPower
             };
 
-            IsExportingToGrid = gridPower < 0;
-            IsImportingFromGrid = gridPower > 0;
-            IsBatteryCharging = essPower < 0;
-            IsBatteryDischarging = essPower > 0;
+            IsExportingToGrid = gridPower < -0.08M;
+            IsImportingFromGrid = gridPower > 0.08M;
+            IsBatteryCharging = essPower > 0.08M;
+            IsBatteryDischarging = essPower < -0.08M;
         }
 
         private async Task RefreshDashboardAsync(string systemId, CancellationToken cancellationToken)
@@ -880,10 +880,10 @@ namespace SigCompanion.ViewModels
                 };
 
                 // Raw API signs: gridPower > 0 = export (Grid tile shows -GridPower); batteryPower > 0 = charging, < 0 = discharging.
-                IsExportingToGrid = powerFlow.GridPower > 0;
-                IsImportingFromGrid = powerFlow.GridPower < 0;
-                IsBatteryCharging = powerFlow.BatteryPower > 0;
-                IsBatteryDischarging = powerFlow.BatteryPower < 0;
+                IsExportingToGrid = powerFlow.GridPower > 0.08M;
+                IsImportingFromGrid = powerFlow.GridPower < -0.08M;
+                IsBatteryCharging = powerFlow.BatteryPower > 0.08M;
+                IsBatteryDischarging = powerFlow.BatteryPower < -0.08M;
             }
 
             var historical = await historicalTask;
@@ -913,7 +913,7 @@ namespace SigCompanion.ViewModels
                 todayChartData.Deserialize<SigenHistoricalChartData>()
             };
 
-            var solar = GetChartSeriesValues(charts, "FROM_SOLAR");
+            var solar = GetChartSeriesValues(charts, "FROM_SOLAR", "FROM_THIRD_PARTY_INV");
             var battery = GetChartSeriesValues(charts, "BATTERY");
             var grid = GetChartSeriesValues(charts, "GRID");
             var load = GetChartSeriesValues(charts, "TO_LOAD");
@@ -1043,22 +1043,24 @@ namespace SigCompanion.ViewModels
             HistoricalYAxes = axes.ToArray();
         }
 
-        private static Dictionary<DateTime, decimal> GetChartSeriesValues(IEnumerable<SigenHistoricalChartData?> charts, string seriesId)
+        private static Dictionary<DateTime, decimal> GetChartSeriesValues(IEnumerable<SigenHistoricalChartData?> charts, params string[] seriesIds)
         {
             var values = new Dictionary<DateTime, decimal>();
             foreach (var chart in charts)
             {
-                var series = chart?.DataSeries?.FirstOrDefault(s => s.Id == seriesId);
-                if (series?.Points is null)
+                foreach (var series in (chart?.DataSeries ?? []).Where(s => seriesIds.Contains(s.Id)))
                 {
-                    continue;
-                }
-
-                foreach (var point in series.Points)
-                {
-                    if (point.Value is decimal value && DateTime.TryParseExact(point.Time, "yyyyMMdd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
+                    if (series.Points is null)
                     {
-                        values[time] = value;
+                        continue;
+                    }
+
+                    foreach (var point in series.Points)
+                    {
+                        if (point.Value is decimal value && DateTime.TryParseExact(point.Time, "yyyyMMdd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
+                        {
+                            values[time] = values.GetValueOrDefault(time) + value;
+                        }
                     }
                 }
             }
