@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using SigCompanion.Lib.Sigen.Models;
+using SigCompanion.Models;
 
 namespace SigCompanion.Controls;
 
@@ -23,10 +24,10 @@ public sealed class PowerFlowDiagram : Control
     private const int ArcSegments = 32;
     private const double FlowSpeed = 40;
 
-    private static readonly Color SolarColor = Color.Parse("#E0B800");
-    private static readonly Color GridColor = Color.Parse("#CCCCCC");
-    private static readonly Color HomeColor = Color.Parse("#2AA7E0");
-    private static readonly Color BatteryColor = Color.Parse("#3CC83C");
+    private static readonly Color SolarColor = PowerColors.Solar;
+    private static readonly Color GridColor = PowerColors.Grid;
+    private static readonly Color HomeColor = PowerColors.Home;
+    private static readonly Color BatteryColor = PowerColors.Battery;
 
     public static readonly StyledProperty<PowerFlowAllocation?> FlowsProperty =
         AvaloniaProperty.Register<PowerFlowDiagram, PowerFlowAllocation?>(nameof(Flows));

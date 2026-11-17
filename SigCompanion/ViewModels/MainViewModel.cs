@@ -798,8 +798,9 @@ namespace SigCompanion.ViewModels
         {
             var gridPower = plant.GridSensorActivePower;
             var pvPower = plant.PhotovoltaicPower + plant.ThirdPartyInverterActivePower;
-            var essPower = plant.EssPower;
             var loadPower = plant.TotalLoadPower;
+            var essPower =  // Don't use plant.EssPower as the numbers don't add up. The Sig app seems to infer this from the other flows.
+                pvPower + gridPower - loadPower;
 
             IsGridConnected = plant.OnOffGridStatus == 0;
             BatterySocValue = (double)plant.EnergyStorageSystemSoc;
@@ -966,13 +967,13 @@ namespace SigCompanion.ViewModels
 
             historicalPowerLineSeries =
             [
-                CreateSeries("Grid", "#CCCCCC", times, t => Sun(t) + BatteryDischarge(t) + GridImport(t), t => GridImport(t) + GridExport(t)),
-                CreateSeries("Battery", "#3CC83C", times, t => Sun(t) + BatteryDischarge(t), t => BatteryDischarge(t) + BatteryCharge(t)),
-                CreateSeries("Solar", "#E0B800", times, t => Sun(t), t => Sun(t)),
-                CreateSeries("Grid", "#CCCCCC", times, t => BatteryCharge(t) + Home(t) + Evac(t) + GridExport(t), t => GridExport(t), showInLegend: false),
-                CreateSeries("Home", "#2AA7E0", times, t => BatteryCharge(t) + Home(t) + Evac(t), t => Home(t)),
-                CreateSeries("EV", "#E03C3C", times, t => BatteryCharge(t) + Evac(t), t => Evac(t)),
-                CreateSeries("Battery", "#3CC83C", times, t => BatteryCharge(t), t => BatteryCharge(t), showInLegend: false),
+                CreateSeries("Grid", PowerColors.GridHex, times, t => Sun(t) + BatteryDischarge(t) + GridImport(t), t => GridImport(t) + GridExport(t)),
+                CreateSeries("Battery", PowerColors.BatteryHex, times, t => Sun(t) + BatteryDischarge(t), t => BatteryDischarge(t) + BatteryCharge(t)),
+                CreateSeries("Solar", PowerColors.SolarHex, times, t => Sun(t), t => Sun(t)),
+                CreateSeries("Grid", PowerColors.GridHex, times, t => BatteryCharge(t) + Home(t) + Evac(t) + GridExport(t), t => GridExport(t), showInLegend: false),
+                CreateSeries("Home", PowerColors.HomeHex, times, t => BatteryCharge(t) + Home(t) + Evac(t), t => Home(t)),
+                CreateSeries("EV", PowerColors.EvHex, times, t => BatteryCharge(t) + Evac(t), t => Evac(t)),
+                CreateSeries("Battery", PowerColors.BatteryHex, times, t => BatteryCharge(t), t => BatteryCharge(t), showInLegend: false),
             ];
             historicalSocPoints = socValues.Select(p => new DateTimePoint(p.Key, (double)p.Value)).ToArray();
             UpdateHistoricalChartSeries();
