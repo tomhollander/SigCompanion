@@ -4,10 +4,10 @@ namespace SigCompanion.Models;
 
 public static class PowerColors
 {
-    public const string HomeHex = "#2AA7E0";
-    public const string GridHex = "#CCCCCC";
-    public const string SolarHex = "#E0B800";
-    public const string BatteryHex = "#3CC83C";
+    public const string HomeHex = "#A67BE5";
+    public const string GridHex = "#618ABF";
+    public const string SolarHex = "#CECB65";
+    public const string BatteryHex = "#54ABAD";
     public const string EvHex = "#E03C3C";
 
     public static readonly Color Home = Color.Parse(HomeHex);

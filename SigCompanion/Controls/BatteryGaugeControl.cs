@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using SigCompanion.Models;
 
 namespace SigCompanion.Controls;
 
@@ -45,7 +46,7 @@ public sealed class BatteryGaugeControl : Control
     public static readonly StyledProperty<bool> EnableAnimationsProperty =
         AvaloniaProperty.Register<BatteryGaugeControl, bool>(nameof(EnableAnimations), true);
 
-    private static readonly Color GreenColor = Color.Parse("#2BD640");
+    private static readonly Color GreenColor = PowerColors.Battery;
     private static readonly Color AmberColor = Color.Parse("#F9A825");
     private static readonly IBrush GreenBrush = new SolidColorBrush(GreenColor);
     private static readonly IBrush AmberBrush = new SolidColorBrush(AmberColor);
