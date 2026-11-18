@@ -144,7 +144,7 @@ namespace SigCompanion.Services
 
                 solar.Add(new SigenHistoricalChartPoint { Time = time, Value = flow.PvPower  });
                 battery.Add(new SigenHistoricalChartPoint { Time = time, Value = -flow.BatteryPower });
-                grid.Add(new SigenHistoricalChartPoint { Time = time, Value = Math.Max(-flow.GridPower, 0m) });
+                grid.Add(new SigenHistoricalChartPoint { Time = time, Value = -flow.GridPower });
                 gridExport.Add(new SigenHistoricalChartPoint { Time = time, Value = Math.Min(-flow.GridPower, 0m) });
                 load.Add(new SigenHistoricalChartPoint { Time = time, Value = -(flow.LoadPower + flow.AcPower) });
             }

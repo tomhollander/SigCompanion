@@ -113,6 +113,12 @@ public sealed class SigenApiClient
         if (!response.IsSuccessStatusCode || tokenPayload is null || string.IsNullOrWhiteSpace(tokenPayload.AccessToken))
         {
             var message = envelope.Message ?? envelope.Msg ?? "Sigen login failed.";
+            if (message.Contains("authentication failed", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("User account is locked", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new SigenAuthenticationException(message);
+            }
+
             throw new InvalidOperationException(message);
         }
 

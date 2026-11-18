@@ -726,6 +726,15 @@ namespace SigCompanion.ViewModels
                 {
                     return;
                 }
+                catch (SigenAuthenticationException ex)
+                {
+                    Debug.WriteLine($"Dashboard poll authentication failed: {ex}");
+                    _isAuthenticated = false;
+                    StopPolling();
+                    CurrentPage = AppPage.Login;
+                    StatusMessage = ex.Message;
+                    return;
+                }
                 catch (Exception ex)
                 {
                     IsCloudApiUnavailable = true;
@@ -919,9 +928,9 @@ namespace SigCompanion.ViewModels
             var grid = GetChartSeriesValues(charts, "GRID");
             var load = GetChartSeriesValues(charts, "TO_LOAD");
             var evac = GetChartSeriesValues(charts, "TO_EVAC");
-            var gridExport = GetChartSeriesValues(charts, "TO_GRID");
+            var gridExport = grid;
 
-            var times = solar.Keys.Concat(battery.Keys).Concat(grid.Keys).Concat(load.Keys).Concat(evac.Keys).Concat(gridExport.Keys)
+            var times = solar.Keys.Concat(battery.Keys).Concat(grid.Keys).Concat(load.Keys).Concat(evac.Keys)
                 .Distinct()
                 .OrderBy(t => t)
                 .ToArray();
@@ -972,7 +981,9 @@ namespace SigCompanion.ViewModels
                 CreateSeries("Solar", PowerColors.SolarHex, times, t => Sun(t), t => Sun(t)),
                 CreateSeries("Grid", PowerColors.GridHex, times, t => BatteryCharge(t) + Home(t) + Evac(t) + GridExport(t), t => GridExport(t), showInLegend: false),
                 CreateSeries("Home", PowerColors.HomeHex, times, t => BatteryCharge(t) + Home(t) + Evac(t), t => Home(t)),
-                CreateSeries("EV", PowerColors.EvHex, times, t => BatteryCharge(t) + Evac(t), t => Evac(t)),
+                .. times.Any(t => Evac(t) != 0m)
+                    ? [CreateSeries("EV", PowerColors.EvHex, times, t => BatteryCharge(t) + Evac(t), t => Evac(t))]
+                    : Array.Empty<ISeries>(),
                 CreateSeries("Battery", PowerColors.BatteryHex, times, t => BatteryCharge(t), t => BatteryCharge(t), showInLegend: false),
             ];
             historicalSocPoints = socValues.Select(p => new DateTimePoint(p.Key, (double)p.Value)).ToArray();

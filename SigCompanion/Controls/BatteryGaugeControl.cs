@@ -52,7 +52,7 @@ public sealed class BatteryGaugeControl : Control
     private static readonly IBrush AmberBrush = new SolidColorBrush(AmberColor);
     private static readonly IBrush DarkGreenBrush = new SolidColorBrush(Darken(GreenColor, 0.8d));
     private static readonly IBrush DarkAmberBrush = new SolidColorBrush(Darken(AmberColor, 0.8d));
-    private static readonly IBrush InactiveBrush = new SolidColorBrush(Color.Parse("#7A7A7A"));
+    private static readonly IBrush InactiveBrush = new SolidColorBrush(Color.Parse("#666666"));
     private static readonly IBrush DividerBrush = new SolidColorBrush(Color.Parse("#161616"));
 
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(30) };
