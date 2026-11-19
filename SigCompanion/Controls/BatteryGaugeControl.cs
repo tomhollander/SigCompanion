@@ -54,6 +54,7 @@ public sealed class BatteryGaugeControl : Control
     private static readonly IBrush DarkAmberBrush = new SolidColorBrush(Darken(AmberColor, 0.8d));
     private static readonly IBrush InactiveBrush = new SolidColorBrush(Color.Parse("#666666"));
     private static readonly IBrush DividerBrush = new SolidColorBrush(Color.Parse("#161616"));
+    private static readonly IBrush InnerCircleBrush = PowerColors.GridBrush;
 
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(30) };
     private readonly Pen _activePen = new() { LineCap = PenLineCap.Flat };
@@ -236,7 +237,7 @@ public sealed class BatteryGaugeControl : Control
         };
         var innerCirclePen = new Pen
         {
-            Brush = isGridConnected ? GreenBrush : AmberBrush,
+            Brush = InnerCircleBrush,
             Thickness = Math.Max(2d, layout.Size * 0.014d),
         };
 

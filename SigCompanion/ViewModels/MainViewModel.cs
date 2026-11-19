@@ -366,20 +366,6 @@ namespace SigCompanion.ViewModels
             }
         }
 
-        private byte modbusSlaveAddress = 247;
-        public byte ModbusSlaveAddress
-        {
-            get => modbusSlaveAddress;
-            set
-            {
-                if (SetProperty(ref modbusSlaveAddress, value))
-                {
-                    _settings.ModbusSlaveAddress = value;
-                    _settingsStore.Save(_settings);
-                    RestartModbusPolling();
-                }
-            }
-        }
 
         private string currentTimeText = string.Empty;
         public string CurrentTimeText
@@ -424,7 +410,6 @@ namespace SigCompanion.ViewModels
             UseModbus = _settings.UseModbus;
             ModbusHost = _settings.ModbusHost;
             ModbusPort = _settings.ModbusPort;
-            ModbusSlaveAddress = _settings.ModbusSlaveAddress;
             SelectedRegion = SigenRegions.GetByRegion(_settings.Region);
             _sigenUiApi.SetRegion(SelectedRegion);
 
@@ -567,7 +552,6 @@ namespace SigCompanion.ViewModels
                 UseModbus = _settings.UseModbus,
                 ModbusHost = _settings.ModbusHost,
                 ModbusPort = _settings.ModbusPort,
-                ModbusSlaveAddress = _settings.ModbusSlaveAddress
             };
             _settingsStore.Save(_settings);
 
@@ -670,7 +654,7 @@ namespace SigCompanion.ViewModels
             }
 
             _modbusCts = new CancellationTokenSource();
-            _ = PollModbusLoopAsync(ModbusHost, ModbusPort, ModbusSlaveAddress, _modbusCts.Token);
+            _ = PollModbusLoopAsync(ModbusHost, ModbusPort, _modbusCts.Token);
         }
 
         private void StopModbusPolling()
@@ -755,9 +739,9 @@ namespace SigCompanion.ViewModels
             }
         }
 
-        private async Task PollModbusLoopAsync(string host, int port, byte slaveAddress, CancellationToken cancellationToken)
+        private async Task PollModbusLoopAsync(string host, int port, CancellationToken cancellationToken)
         {
-            using var modbusClient = new SigenModbusClient(host, port, slaveAddress);
+            using var modbusClient = new SigenModbusClient(host, port, 247);
 
             while (!cancellationToken.IsCancellationRequested)
             {

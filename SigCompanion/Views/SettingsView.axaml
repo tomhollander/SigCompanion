@@ -37,10 +37,6 @@
                                 <TextBlock Text="Port" Foreground="#BEBEBE" />
                                 <NumericUpDown Value="{Binding ModbusPort, Mode=TwoWay}" Minimum="1" Maximum="65535" Increment="1" FormatString="0" MinWidth="260" />
                             </StackPanel>
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="Slave address" Foreground="#BEBEBE" />
-                                <NumericUpDown Value="{Binding ModbusSlaveAddress, Mode=TwoWay}" Minimum="1" Maximum="247" Increment="1" FormatString="0" MinWidth="260" />
-                            </StackPanel>
                         </StackPanel>
                         <TextBlock Text="Features" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
                         <ToggleSwitch Content="Show clock" Foreground="#FFFFFF" IsChecked="{Binding ShowClock, Mode=TwoWay}" />

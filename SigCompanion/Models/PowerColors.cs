@@ -7,7 +7,7 @@ public static class PowerColors
     public const string HomeHex = "#A67BE5";
     public const string GridHex = "#307EDD";
     public const string SolarHex = "#CECB65";
-    public const string BatteryHex = "#54ABAD";
+    public const string BatteryHex = "#5CDBB3";
     public const string EvHex = "#E03C3C";
 
     public static readonly Color Home = Color.Parse(HomeHex);

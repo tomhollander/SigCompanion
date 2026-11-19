@@ -18,5 +18,4 @@ public sealed class AppSettings
     public bool UseModbus { get; set; }
     public string? ModbusHost { get; set; }
     public int ModbusPort { get; set; } = 502;
-    public byte ModbusSlaveAddress { get; set; } = 247;
 }
