@@ -9,5 +9,5 @@ Store installation links:
  - [Android (Google Play)](https://play.google.com/store/apps/details?id=com.thirtyhippos.sigcompanion)
 
 Other information:
- - [FAQs](/wiki/FAQs)
- - [Privacy Policy](/wiki/Privacy-Policy)
+ - [FAQs](https://github.com/tomhollander/SigCompanion/wiki/FAQs)
+ - [Privacy Policy](https://github.com/tomhollander/SigCompanion/wiki/Privacy-Policy)
