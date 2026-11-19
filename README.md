@@ -4,3 +4,10 @@ A .NET Avalonia application that allows you to monitor your Sigenergy battery an
 using data from the cloud API and local Modbus interface.
 
 ![Sig Companion image](./WindowsPackaging/StoreImages/Poster916.png)
+
+Store installation links:
+ - [Android (Google Play)](https://play.google.com/store/apps/details?id=com.thirtyhippos.sigcompanion)
+
+Other information:
+ - [FAQs](/tomhollander/SigCompanion/wiki/FAQs)
+ - [Privacy Policy](/tomhollander/SigCompanion/wiki/Privacy-Policy)
