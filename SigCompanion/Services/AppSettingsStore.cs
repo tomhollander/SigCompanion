@@ -43,7 +43,9 @@ public sealed class AppSettingsStore
 
             var bytes = OperatingSystem.IsWindows()
                 ? ProtectedData.Unprotect(fileBytes, null, DataProtectionScope.CurrentUser)
-                : DecryptFallback(fileBytes);
+                : OperatingSystem.IsBrowser()
+                    ? fileBytes
+                    : DecryptFallback(fileBytes);
 
             var json = Encoding.UTF8.GetString(bytes);
             return JsonSerializer.Deserialize<AppSettings>(json, SerializerOptions) ?? new AppSettings();
@@ -62,9 +64,12 @@ public sealed class AppSettingsStore
         var bytes = Encoding.UTF8.GetBytes(json);
 
         // DPAPI is Windows-only; other platforms use AES-GCM with a key embedded in the app.
+        // AES-GCM is not supported in the browser (WebAssembly), so settings are stored unencrypted there.
         var fileBytes = OperatingSystem.IsWindows()
             ? ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser)
-            : EncryptFallback(bytes);
+            : OperatingSystem.IsBrowser()
+                ? bytes
+                : EncryptFallback(bytes);
 
         File.WriteAllBytes(_settingsPath, fileBytes);
     }
