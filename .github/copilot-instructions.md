@@ -8,3 +8,4 @@
 ## Dashboard Instructions
 - The dashboard gauge should use the battery icon from Assets and show `grid_disconnected.png` above SOC when the grid is not active.
 - Enabled energy prices refresh in the existing two-minute dashboard polling loop. Tariff level names are independent of numeric levels, with numeric levels 1–6 mapped to magenta, blue, green, yellow, orange, and red, respectively.
+- Sig Companion energy price features should also work in demo mode through DemoDataProvider, without live API requests or provider credentials.

@@ -1,15 +1,53 @@
+using SigCompanion.Lib.EnergyPrices;
 using SigCompanion.Lib.Sigen.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SigCompanion.Services
 {
     public static class DemoDataProvider
     {
         public const string Username = "demo";
+
+        public static IEnergyPriceProvider GetEnergyPriceProvider(bool isAmber) => new DemoEnergyPriceProvider(isAmber);
+
+        public static decimal? GetSigenergyDailyCost(SigenHistoricalComparisonSnapshot history, DateTime now) =>
+            GridEnergyCost.CalculateToday(history, now,
+            [
+                (now.Date, 0.25m, 0.09m),
+                (now.Date.AddHours(10), 0.18m, 0.09m),
+                (now.Date.AddHours(16), 0.38m, 0.09m),
+                (now.Date.AddHours(21), 0.25m, 0.09m),
+            ]);
+
+        private sealed class DemoEnergyPriceProvider(bool isAmber) : IEnergyPriceProvider
+        {
+            public CultureInfo CurrencyCulture => CultureInfo.GetCultureInfo("en-AU");
+            public string MinorUnitSuffix => "c";
+
+            public Task<EnergyPriceSnapshot> GetPricesAsync(CancellationToken cancellationToken = default)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var hour = DateTime.Now.Hour;
+                var (buyPrice, name, level) = hour switch
+                {
+                    >= 10 and < 16 => (18m, "Very Low", 2),
+                    >= 16 and < 21 => (38m, "High", 5),
+                    _ => (25m, "Neutral", 4),
+                };
+
+                return Task.FromResult(new EnergyPriceSnapshot(
+                    new EnergyTariff(buyPrice, "General usage", isAmber ? name : string.Empty, isAmber ? level : 0),
+                    new EnergyTariff(9m, "Feed-in", isAmber ? "High" : string.Empty, isAmber ? 5 : 0),
+                    isAmber ? 1.24m : null));
+            }
+        }
 
         public static IReadOnlyList<SigenSystemReference> Systems { get; } =
         [

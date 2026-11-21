@@ -33,20 +33,23 @@
         <StackPanel Classes="live-price" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center"
                     ToolTip.Tip="{Binding EnergyPrices.Buy.TariffName}">
             <Image Source="/Assets/icon_grid_import.png" Width="24" Height="24" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding BuyEnergyPriceText}" Foreground="#3A8DDE" FontSize="32" />
-            <Border Classes="badge" Background="{Binding BuyPriceLevelBrush}">
+            <TextBlock Text="{Binding BuyEnergyPriceText}" Foreground="#307EDD" FontSize="32" />
+            <Border Classes="badge" Background="{Binding BuyPriceLevelBrush}"
+                    IsVisible="{Binding EnergyPrices.Buy.PriceLevelName, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}">
                 <TextBlock Text="{Binding EnergyPrices.Buy.PriceLevelName}" Foreground="#000000" FontSize="14" />
             </Border>
         </StackPanel>
         <StackPanel Classes="live-price" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center"
                     ToolTip.Tip="{Binding EnergyPrices.Sell.TariffName}">
             <Image Source="/Assets/icon_grid_export_yellow.png" Width="24" Height="24" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding SellEnergyPriceText}" Foreground="#E8C547" FontSize="32" />
-            <Border Classes="badge" Background="{Binding SellPriceLevelBrush}">
+            <TextBlock Text="{Binding SellEnergyPriceText}" Foreground="#CECB65" FontSize="32" />
+            <Border Classes="badge" Background="{Binding SellPriceLevelBrush}"
+                    IsVisible="{Binding EnergyPrices.Sell.PriceLevelName, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}">
                 <TextBlock Text="{Binding EnergyPrices.Sell.PriceLevelName}" Foreground="#000000" FontSize="14" />
             </Border>
         </StackPanel>
-        <TextBlock Classes="daily-total" Text="{Binding TodayEnergyTotalText}" Foreground="#BEBEBE" FontSize="26"
-                   HorizontalAlignment="Center" />
+        <TextBlock Classes="daily-total" Foreground="#BEBEBE" FontSize="26" HorizontalAlignment="Center">
+            <Run Text="Today:&#160;" /><Run Text="{Binding TodayEnergyTotalText}" Foreground="{Binding TodayEnergyTotalBrush}" />
+        </TextBlock>
     </StackPanel>
 </UserControl>

@@ -22,11 +22,11 @@
                 <!-- 1. Large landscape (1000x800 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargeLandscapeLayout" IsVisible="False" Margin="12,24,12,12">
                     <Grid Width="1000" Height="800" ColumnDefinitions="*, 2*" ColumnSpacing="24">
-                        <StackPanel Grid.Column="0" VerticalAlignment="Top" HorizontalAlignment="Center" Spacing="28">
-                            <views:GaugePart />
-                            <views:FlowPart />
-                            <views:EnergyPricePart Classes="stacked" IsVisible="{Binding ShowEnergyPrices}" HorizontalAlignment="Stretch" />
-                        </StackPanel>
+                        <Grid Grid.Column="0" RowDefinitions="2*,2*,1*" VerticalAlignment="Stretch" HorizontalAlignment="Center" >
+                            <views:GaugePart Grid.Row="0" />
+                            <views:FlowPart Grid.Row="1" />
+                            <views:EnergyPricePart Grid.Row="2" Classes="stacked" IsVisible="{Binding ShowEnergyPrices}" HorizontalAlignment="Stretch" />
+                        </Grid>
 
                         <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="12">
                             <views:EnergyTablePart Grid.Row="0" HorizontalAlignment="Center" />
@@ -54,9 +54,9 @@
                     <views:EnergyPricePart Grid.Row="1" Margin="0,4,0,0" IsVisible="{Binding ShowEnergyPrices}" />
                 </Grid>
 
-                <!-- 3. Phone landscape (800x480 reference, two swipeable pages) -->
+                <!-- 3. Phone landscape (860x440 reference, two swipeable pages) -->
                 <Viewbox x:Name="PhoneLandscapeLayout" IsVisible="False" Margin="8,12,8,8">
-                    <Grid Width="800" Height="480" Background="Transparent" ClipToBounds="True"
+                    <Grid Width="860" Height="440" Background="Transparent" ClipToBounds="True"
                           PointerPressed="OnPagerPointerPressed"
                           PointerReleased="OnPagerPointerReleased">
                         <Grid x:Name="LandscapePage1" RowDefinitions="*,Auto" ColumnDefinitions="*,*">

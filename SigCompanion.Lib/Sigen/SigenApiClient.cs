@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -253,6 +254,29 @@ public sealed class SigenApiClient
         var path = $"/openapi/systems/{Uri.EscapeDataString(Require(systemId, nameof(systemId)))}/devices/{Uri.EscapeDataString(Require(serialNumber, nameof(serialNumber)))}/history";
         var response = await SendAuthorizedAsync(HttpMethod.Get, path, query, cancellationToken: cancellationToken).ConfigureAwait(false);
         return await DeserializeEnvelopeAsync<SigenHistoricalSeries>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal Task<JsonElement> GetHomeStationAsync(CancellationToken cancellationToken) =>
+        GetAuthorizedDataAsync("/device/owner/station/home", null, cancellationToken);
+
+    internal Task<JsonElement> GetHomePricePreviewAsync(long stationId, DateOnly date, CancellationToken cancellationToken) =>
+        GetAuthorizedDataAsync(
+            $"/electricity-price/api/price-preview/home/{stationId.ToString(CultureInfo.InvariantCulture)}",
+            new Dictionary<string, string> { ["dt"] = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+            cancellationToken);
+
+    private async Task<JsonElement> GetAuthorizedDataAsync(string path, IReadOnlyDictionary<string, string>? query,
+        CancellationToken cancellationToken)
+    {
+        using var response = await SendAuthorizedAsync(HttpMethod.Get, path, query, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var envelope = await DeserializeEnvelopeAsync<JsonElement>(response, cancellationToken).ConfigureAwait(false);
+        if (envelope.Code != 0 || envelope.Data.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidOperationException($"Sigenergy returned no data for {path} (code {envelope.Code}).");
+        }
+
+        return envelope.Data;
     }
 
     public async Task EnsureAuthenticatedAsync(CancellationToken cancellationToken = default)

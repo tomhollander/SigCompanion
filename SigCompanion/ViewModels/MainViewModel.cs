@@ -339,6 +339,8 @@ namespace SigCompanion.ViewModels
         public bool IsAmberSelected => EnergyPriceProvider == EnergyPriceProviderFactory.Amber;
 
         private IEnergyPriceProvider? _configuredEnergyPriceProvider;
+        private IEnergyPriceProvider? _sigenergyPriceProvider;
+        private SigenHistoricalComparisonSnapshot? _latestDashboardHistory;
         private string? amberApiKey;
         public string? AmberApiKey
         {
@@ -370,6 +372,7 @@ namespace SigCompanion.ViewModels
                     OnPropertyChanged(nameof(BuyEnergyPriceText));
                     OnPropertyChanged(nameof(SellEnergyPriceText));
                     OnPropertyChanged(nameof(TodayEnergyTotalText));
+                    OnPropertyChanged(nameof(TodayEnergyTotalBrush));
                 }
             }
         }
@@ -380,8 +383,13 @@ namespace SigCompanion.ViewModels
         public string SellEnergyPriceText => FormatEnergyRate(EnergyPrices?.Sell.CentsPerKwh);
         public string TodayEnergyTotalText =>
             EnergyPrices?.TodayTotalDollars is decimal total && _configuredEnergyPriceProvider is { } provider
-                ? $"Today: {total.ToString("C", provider.CurrencyCulture)}"
-                : "Today: —";
+                ? total.ToString("C", provider.CurrencyCulture)
+                : "—";
+
+        private static readonly IBrush DefaultEnergyTotalBrush = new SolidColorBrush(Color.Parse("#BEBEBE"));
+        public IBrush TodayEnergyTotalBrush => EnergyPrices?.TodayTotalDollars is < 0m
+            ? PowerColors.BatteryBrush
+            : DefaultEnergyTotalBrush;
 
         private string FormatEnergyRate(decimal? rate)
         {
@@ -390,8 +398,14 @@ namespace SigCompanion.ViewModels
                 return string.Empty;
             }
 
+            var suffix = provider.MinorUnitSuffix;
+            if (suffix.Length == 0)
+            {
+                return (amount / 100m).ToString("C", provider.CurrencyCulture);
+            }
+
             var rounded = decimal.Round(amount, 0, MidpointRounding.AwayFromZero);
-            return rounded.ToString("0", provider.CurrencyCulture) + provider.MinorUnitSuffix;
+            return rounded.ToString("0", provider.CurrencyCulture) + suffix;
         }
 
         private static IBrush GetPriceLevelBrush(int? level) => level switch
@@ -400,9 +414,10 @@ namespace SigCompanion.ViewModels
             2 => Brushes.DodgerBlue,
             3 => Brushes.LimeGreen,
             4 => Brushes.Yellow,
-            5 => Brushes.Orange,
-            6 => Brushes.Red,
-            _ => Brushes.Gray,
+            5 => Brushes.DarkOrange,
+            6 => Brushes.IndianRed,
+            0 => Brushes.Gray,
+            _ => Brushes.Transparent,
         };
 
         private void ResetEnergyPriceProvider()
@@ -414,7 +429,7 @@ namespace SigCompanion.ViewModels
         private async Task RefreshEnergyPricesAsync(CancellationToken cancellationToken = default)
         {
             var apiKey = AmberApiKey;
-            if (!ShowEnergyPrices || string.IsNullOrWhiteSpace(apiKey))
+            if (!ShowEnergyPrices || (!_isDemoMode && IsAmberSelected && string.IsNullOrWhiteSpace(apiKey)))
             {
                 EnergyPrices = null;
                 return;
@@ -422,12 +437,22 @@ namespace SigCompanion.ViewModels
 
             try
             {
-                var provider = _configuredEnergyPriceProvider ??=
-                    EnergyPriceProviderFactory.Create(EnergyPriceProvider, apiKey.Trim());
-                var prices = await provider.GetPricesAsync(cancellationToken);
+                var provider = _configuredEnergyPriceProvider ??= _isDemoMode
+                    ? DemoDataProvider.GetEnergyPriceProvider(IsAmberSelected)
+                    : IsAmberSelected
+                        ? EnergyPriceProviderFactory.Create(EnergyPriceProvider, _sigenUiApi, apiKey?.Trim())
+                        : (_sigenergyPriceProvider ??= EnergyPriceProviderFactory.Create(EnergyPriceProvider, _sigenUiApi));
+                var prices = provider is SigenergyEnergyPriceProvider sigenergy
+                    ? await sigenergy.GetPricesAsync(_latestDashboardHistory, GetSigenergyLocalTime(), cancellationToken)
+                    : await provider.GetPricesAsync(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (ShowEnergyPrices && ReferenceEquals(_configuredEnergyPriceProvider, provider))
                 {
+                    if (_isDemoMode && !IsAmberSelected && _latestDashboardHistory is { } history)
+                    {
+                        prices = prices with { TodayTotalDollars = DemoDataProvider.GetSigenergyDailyCost(history, DateTime.Now) };
+                    }
+
                     EnergyPrices = prices;
                 }
             }
@@ -435,6 +460,15 @@ namespace SigCompanion.ViewModels
             {
                 Debug.WriteLine($"Energy price refresh failed ({ex.GetType().Name}).");
             }
+        }
+
+        private DateTime GetSigenergyLocalTime()
+        {
+            var now = DateTime.UtcNow;
+            return SelectedSystem?.TimeZone is { Length: > 0 } zoneId &&
+                TimeZoneInfo.TryFindSystemTimeZoneById(zoneId, out var zone)
+                ? TimeZoneInfo.ConvertTimeFromUtc(now, zone)
+                : now;
         }
 
         public string[] ChartDataOptions { get; } = ["Power", "Battery SoC", "Both"];
@@ -589,7 +623,12 @@ namespace SigCompanion.ViewModels
             }
 
             IsBusy = true;
-            _isDemoMode = string.Equals(Username, DemoDataProvider.Username, StringComparison.OrdinalIgnoreCase);
+            var isDemoMode = string.Equals(Username, DemoDataProvider.Username, StringComparison.OrdinalIgnoreCase);
+            if (_isDemoMode != isDemoMode)
+            {
+                _isDemoMode = isDemoMode;
+                ResetEnergyPriceProvider();
+            }
 
             try
             {
@@ -708,6 +747,7 @@ namespace SigCompanion.ViewModels
             Password = string.Empty;
             SavePassword = false;
             SetProperty(ref amberApiKey, null, nameof(AmberApiKey));
+            _sigenergyPriceProvider = null;
             ResetEnergyPriceProvider();
             SelectedRegion = SigenRegions.Default;
             SelectedSystem = null;
@@ -752,6 +792,12 @@ namespace SigCompanion.ViewModels
 
         partial void OnSelectedSystemChanged(SigenSystemReference? value)
         {
+            _latestDashboardHistory = null;
+            if (!IsAmberSelected)
+            {
+                EnergyPrices = null;
+            }
+
             if (!_isAuthenticated || value is null)
             {
                 StopPolling();
@@ -977,8 +1023,6 @@ namespace SigCompanion.ViewModels
 
         private async Task RefreshDashboardAsync(string systemId, CancellationToken cancellationToken)
         {
-            await RefreshEnergyPricesAsync(cancellationToken);
-
             var historicalTask = _isDemoMode
                 ? Task.FromResult(DemoDataProvider.GetHistoricalComparison(DateTime.Now))
                 : _sigenUiApi.GetHistoricalDayComparisonAsync(systemId, cancellationToken);
@@ -1034,6 +1078,8 @@ namespace SigCompanion.ViewModels
             }
 
             var historical = await historicalTask;
+            cancellationToken.ThrowIfCancellationRequested();
+            _latestDashboardHistory = historical;
 
             HistoricalStationCards.Clear();
             foreach (var row in historical.StationCards)
@@ -1046,6 +1092,7 @@ namespace SigCompanion.ViewModels
             TodayChartDataJson = JsonSerializer.Serialize(historical.TodayChartData, new JsonSerializerOptions { WriteIndented = false });
             YesterdayChartDataJson = JsonSerializer.Serialize(historical.YesterdayChartData, new JsonSerializerOptions { WriteIndented = false });
             UpdateHistoricalPowerChart(historical.YesterdayChartData, historical.TodayChartData, historical.YesterdayStateOfCharge, historical.TodayStateOfCharge);
+            await RefreshEnergyPricesAsync(cancellationToken);
         }
 
         private void UpdateHistoricalPowerChart(

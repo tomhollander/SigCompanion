@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using System.Text.Json;
 using SigCompanion.Lib.Sigen.Models;
 
 namespace SigCompanion.Lib.Sigen;
@@ -36,6 +37,12 @@ public sealed class SigenCachedApiClient
     public void ClearCache() => _cache.Clear();
 
     public bool InvalidateCache(string cacheKey) => _cache.TryRemove(cacheKey, out _);
+
+    internal Task<JsonElement> GetHomeStationAsync(CancellationToken cancellationToken) =>
+        _innerClient.GetHomeStationAsync(cancellationToken);
+
+    internal Task<JsonElement> GetHomePricePreviewAsync(long stationId, DateOnly date, CancellationToken cancellationToken) =>
+        _innerClient.GetHomePricePreviewAsync(stationId, date, cancellationToken);
 
     public Task<SigenApiEnvelope<string>> GetSystemListAsync(
         TimeSpan cachePeriod,
