@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -5,6 +6,7 @@ using LiveChartsCore;
 using LiveChartsCore.Defaults;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
+using SigCompanion.Lib.EnergyPrices;
 using SigCompanion.Lib.Sigen;
 using SigCompanion.Lib.Sigen.Modbus;
 using SigCompanion.Lib.Sigen.Models;
@@ -73,7 +75,7 @@ namespace SigCompanion.ViewModels
 
             signInCommand = new AsyncRelayCommand(SignInAsync);
             openSettingsCommand = new RelayCommand(OpenSettings);
-            backToMainCommand = new RelayCommand(BackToMain);
+            backToMainCommand = new AsyncRelayCommand(BackToMainAsync);
             signOutCommand = new AsyncRelayCommand(SignOutAsync);
 
             _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -302,6 +304,139 @@ namespace SigCompanion.ViewModels
             }
         }
 
+        private bool showEnergyPrices;
+        public bool ShowEnergyPrices
+        {
+            get => showEnergyPrices;
+            set
+            {
+                if (SetProperty(ref showEnergyPrices, value))
+                {
+                    _settings.ShowEnergyPrices = value;
+                    _settingsStore.Save(_settings);
+                }
+            }
+        }
+
+        public IReadOnlyList<string> EnergyPriceProviders => EnergyPriceProviderFactory.SupportedProviders;
+
+        private string energyPriceProvider = EnergyPriceProviderFactory.Amber;
+        public string EnergyPriceProvider
+        {
+            get => energyPriceProvider;
+            set
+            {
+                if (EnergyPriceProviders.Contains(value) && SetProperty(ref energyPriceProvider, value))
+                {
+                    ResetEnergyPriceProvider();
+                    _settings.EnergyPriceProvider = value;
+                    _settingsStore.Save(_settings);
+                    OnPropertyChanged(nameof(IsAmberSelected));
+                }
+            }
+        }
+
+        public bool IsAmberSelected => EnergyPriceProvider == EnergyPriceProviderFactory.Amber;
+
+        private IEnergyPriceProvider? _configuredEnergyPriceProvider;
+        private string? amberApiKey;
+        public string? AmberApiKey
+        {
+            get => amberApiKey;
+            set
+            {
+                if (SetProperty(ref amberApiKey, value))
+                {
+                    ResetEnergyPriceProvider();
+                    if (!OperatingSystem.IsBrowser())
+                    {
+                        _settings.AmberApiKey = value;
+                        _settingsStore.Save(_settings);
+                    }
+                }
+            }
+        }
+
+        private EnergyPriceSnapshot? energyPrices;
+        public EnergyPriceSnapshot? EnergyPrices
+        {
+            get => energyPrices;
+            private set
+            {
+                if (SetProperty(ref energyPrices, value))
+                {
+                    OnPropertyChanged(nameof(BuyPriceLevelBrush));
+                    OnPropertyChanged(nameof(SellPriceLevelBrush));
+                    OnPropertyChanged(nameof(BuyEnergyPriceText));
+                    OnPropertyChanged(nameof(SellEnergyPriceText));
+                    OnPropertyChanged(nameof(TodayEnergyTotalText));
+                }
+            }
+        }
+
+        public IBrush BuyPriceLevelBrush => GetPriceLevelBrush(EnergyPrices?.Buy.PriceLevel);
+        public IBrush SellPriceLevelBrush => GetPriceLevelBrush(EnergyPrices?.Sell.PriceLevel);
+        public string BuyEnergyPriceText => FormatEnergyRate(EnergyPrices?.Buy.CentsPerKwh);
+        public string SellEnergyPriceText => FormatEnergyRate(EnergyPrices?.Sell.CentsPerKwh);
+        public string TodayEnergyTotalText =>
+            EnergyPrices?.TodayTotalDollars is decimal total && _configuredEnergyPriceProvider is { } provider
+                ? $"Today: {total.ToString("C", provider.CurrencyCulture)}"
+                : "Today: —";
+
+        private string FormatEnergyRate(decimal? rate)
+        {
+            if (rate is not decimal amount || _configuredEnergyPriceProvider is not { } provider)
+            {
+                return string.Empty;
+            }
+
+            var rounded = decimal.Round(amount, 0, MidpointRounding.AwayFromZero);
+            return rounded.ToString("0", provider.CurrencyCulture) + provider.MinorUnitSuffix;
+        }
+
+        private static IBrush GetPriceLevelBrush(int? level) => level switch
+        {
+            1 => Brushes.Magenta,
+            2 => Brushes.DodgerBlue,
+            3 => Brushes.LimeGreen,
+            4 => Brushes.Yellow,
+            5 => Brushes.Orange,
+            6 => Brushes.Red,
+            _ => Brushes.Gray,
+        };
+
+        private void ResetEnergyPriceProvider()
+        {
+            _configuredEnergyPriceProvider = null;
+            EnergyPrices = null;
+        }
+
+        private async Task RefreshEnergyPricesAsync(CancellationToken cancellationToken = default)
+        {
+            var apiKey = AmberApiKey;
+            if (!ShowEnergyPrices || string.IsNullOrWhiteSpace(apiKey))
+            {
+                EnergyPrices = null;
+                return;
+            }
+
+            try
+            {
+                var provider = _configuredEnergyPriceProvider ??=
+                    EnergyPriceProviderFactory.Create(EnergyPriceProvider, apiKey.Trim());
+                var prices = await provider.GetPricesAsync(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (ShowEnergyPrices && ReferenceEquals(_configuredEnergyPriceProvider, provider))
+                {
+                    EnergyPrices = prices;
+                }
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                Debug.WriteLine($"Energy price refresh failed ({ex.GetType().Name}).");
+            }
+        }
+
         public string[] ChartDataOptions { get; } = ["Power", "Battery SoC", "Both"];
 
         private string chartData = "Power";
@@ -399,6 +534,11 @@ namespace SigCompanion.ViewModels
         private async Task InitializeAsync()
         {
             _settings = _settingsStore.Load();
+            if (OperatingSystem.IsBrowser())
+            {
+                _settings.AmberApiKey = null;
+            }
+
             Telemetry.StartSession(() => _settings);
             Username = _settings.Username ?? string.Empty;
             Password = _settings.Password ?? string.Empty;
@@ -406,6 +546,9 @@ namespace SigCompanion.ViewModels
             ShowClock = _settings.ShowClock;
             CyclePagesWhenIdle = _settings.CyclePagesWhenIdle;
             EnableAnimations = _settings.EnableAnimations;
+            ShowEnergyPrices = _settings.ShowEnergyPrices;
+            EnergyPriceProvider = _settings.EnergyPriceProvider;
+            amberApiKey = _settings.AmberApiKey;
             ChartData = _settings.ChartData;
             UseModbus = _settings.UseModbus;
             ModbusHost = _settings.ModbusHost;
@@ -527,14 +670,18 @@ namespace SigCompanion.ViewModels
             CurrentPage = AppPage.Settings;
         }
 
-        private void BackToMain()
+        private async Task BackToMainAsync()
         {
             if (!_isAuthenticated)
             {
                 return;
             }
 
-            CurrentPage = AppPage.Main;
+            await RefreshEnergyPricesAsync();
+            if (_isAuthenticated)
+            {
+                CurrentPage = AppPage.Main;
+            }
         }
 
         private Task SignOutAsync()
@@ -548,6 +695,8 @@ namespace SigCompanion.ViewModels
                 ShowClock = _settings.ShowClock,
                 CyclePagesWhenIdle = _settings.CyclePagesWhenIdle,
                 EnableAnimations = _settings.EnableAnimations,
+                ShowEnergyPrices = _settings.ShowEnergyPrices,
+                EnergyPriceProvider = EnergyPriceProvider,
                 ChartData = _settings.ChartData,
                 UseModbus = _settings.UseModbus,
                 ModbusHost = _settings.ModbusHost,
@@ -558,6 +707,8 @@ namespace SigCompanion.ViewModels
             Username = string.Empty;
             Password = string.Empty;
             SavePassword = false;
+            SetProperty(ref amberApiKey, null, nameof(AmberApiKey));
+            ResetEnergyPriceProvider();
             SelectedRegion = SigenRegions.Default;
             SelectedSystem = null;
             Systems.Clear();
@@ -730,7 +881,7 @@ namespace SigCompanion.ViewModels
 
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(120), cancellationToken);
+                    await Task.Delay(TimeSpan.FromMinutes(2), cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -826,6 +977,8 @@ namespace SigCompanion.ViewModels
 
         private async Task RefreshDashboardAsync(string systemId, CancellationToken cancellationToken)
         {
+            await RefreshEnergyPricesAsync(cancellationToken);
+
             var historicalTask = _isDemoMode
                 ? Task.FromResult(DemoDataProvider.GetHistoricalComparison(DateTime.Now))
                 : _sigenUiApi.GetHistoricalDayComparisonAsync(systemId, cancellationToken);

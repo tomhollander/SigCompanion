@@ -1,4 +1,5 @@
 using System;
+using SigCompanion.Lib.EnergyPrices;
 
 namespace SigCompanion.Models;
 
@@ -14,6 +15,9 @@ public sealed class AppSettings
     public bool ShowClock { get; set; }
     public bool CyclePagesWhenIdle { get; set; }
     public bool EnableAnimations { get; set; } = true;
+    public bool ShowEnergyPrices { get; set; }
+    public string EnergyPriceProvider { get; set; } = EnergyPriceProviderFactory.Amber;
+    public string? AmberApiKey { get; set; }
     public string ChartData { get; set; } = "Power";
     public bool UseModbus { get; set; }
     public string? ModbusHost { get; set; }

@@ -42,6 +42,15 @@
                         <ToggleSwitch Content="Show clock" Foreground="#FFFFFF" IsChecked="{Binding ShowClock, Mode=TwoWay}" />
                         <ToggleSwitch Content="Cycle pages when idle" Foreground="#FFFFFF" IsChecked="{Binding CyclePagesWhenIdle, Mode=TwoWay}" />
                         <ToggleSwitch Content="Enable animations" Foreground="#FFFFFF" IsChecked="{Binding EnableAnimations, Mode=TwoWay}" />
+                        <ToggleSwitch Content="Show energy prices" Foreground="#FFFFFF" IsChecked="{Binding ShowEnergyPrices, Mode=TwoWay}" />
+                        <StackPanel Spacing="6" IsVisible="{Binding ShowEnergyPrices}">
+                            <TextBlock Text="Provider" Foreground="#BEBEBE" />
+                            <ComboBox ItemsSource="{Binding EnergyPriceProviders}" SelectedItem="{Binding EnergyPriceProvider, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260" />
+                            <StackPanel Spacing="6" IsVisible="{Binding IsAmberSelected}">
+                                <TextBlock Text="API Key" Foreground="#BEBEBE" />
+                                <TextBox Text="{Binding AmberApiKey, Mode=TwoWay}" PasswordChar="*" MinWidth="260" />
+                            </StackPanel>
+                        </StackPanel>
                         <StackPanel Spacing="6">
                             <TextBlock Text="Chart data" Foreground="#BEBEBE" />
                             <ComboBox ItemsSource="{Binding ChartDataOptions}" SelectedItem="{Binding ChartData, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260" />
