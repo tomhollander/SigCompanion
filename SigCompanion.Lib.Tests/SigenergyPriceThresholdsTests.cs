@@ -5,7 +5,7 @@ namespace SigCompanion.Lib.Tests;
 public sealed class SigenergyPriceThresholdsTests
 {
     [Theory]
-    [InlineData(-1, 1, "Ext Low")]
+    [InlineData(-1, 1, "Negative")]
     [InlineData(0, 2, "Very Low")]
     [InlineData(10, 3, "Low")]
     [InlineData(20, 4, "Medium")]

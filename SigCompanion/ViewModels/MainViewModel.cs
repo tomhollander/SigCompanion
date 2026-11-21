@@ -489,7 +489,7 @@ namespace SigCompanion.ViewModels
             1 => Brushes.Magenta,
             2 => Brushes.DodgerBlue,
             3 => Brushes.LimeGreen,
-            4 => Brushes.Yellow,
+            4 => Brushes.Khaki,
             5 => Brushes.DarkOrange,
             6 => Brushes.IndianRed,
             7 => Brushes.DarkRed,

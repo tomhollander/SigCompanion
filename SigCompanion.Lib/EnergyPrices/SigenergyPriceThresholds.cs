@@ -10,7 +10,7 @@ public sealed record SigenergyPriceThresholds(int LowBelow, int VeryHighAt)
         var midpoint = (LowBelow + (decimal)VeryHighAt) / 2m;
         var (name, level) = tariff.CentsPerKwh switch
         {
-            < 0m => ("Ext Low", 1),
+            < 0m => ("Negative", 1),
             var price when price < LowBelow / 2m => ("Very Low", 2),
             var price when price < LowBelow => ("Low", 3),
             var price when price < midpoint => ("Medium", 4),
