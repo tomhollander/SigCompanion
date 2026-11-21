@@ -332,11 +332,76 @@ namespace SigCompanion.ViewModels
                     _settings.EnergyPriceProvider = value;
                     _settingsStore.Save(_settings);
                     OnPropertyChanged(nameof(IsAmberSelected));
+                    OnPropertyChanged(nameof(IsSigenergySelected));
                 }
             }
         }
 
         public bool IsAmberSelected => EnergyPriceProvider == EnergyPriceProviderFactory.Amber;
+        public bool IsSigenergySelected => EnergyPriceProvider == EnergyPriceProviderFactory.Sigenergy;
+
+        public int SigenergyBuyLowBelow
+        {
+            get => _settings.SigenergyBuyThresholds.LowBelow;
+            set => SetSigenergyThresholds(isBuy: true, _settings.SigenergyBuyThresholds with { LowBelow = value });
+        }
+
+        public int SigenergyBuyVeryHighAt
+        {
+            get => _settings.SigenergyBuyThresholds.VeryHighAt;
+            set => SetSigenergyThresholds(isBuy: true, _settings.SigenergyBuyThresholds with { VeryHighAt = value });
+        }
+
+        public int SigenergySellLowBelow
+        {
+            get => _settings.SigenergySellThresholds.LowBelow;
+            set => SetSigenergyThresholds(isBuy: false, _settings.SigenergySellThresholds with { LowBelow = value });
+        }
+
+        public int SigenergySellVeryHighAt
+        {
+            get => _settings.SigenergySellThresholds.VeryHighAt;
+            set => SetSigenergyThresholds(isBuy: false, _settings.SigenergySellThresholds with { VeryHighAt = value });
+        }
+
+        private void SetSigenergyThresholds(bool isBuy, SigenergyPriceThresholds thresholds)
+        {
+            if (thresholds.LowBelow < 0 || thresholds.VeryHighAt < thresholds.LowBelow)
+            {
+                return;
+            }
+
+            var previous = isBuy ? _settings.SigenergyBuyThresholds : _settings.SigenergySellThresholds;
+            if (thresholds == previous)
+            {
+                return;
+            }
+
+            if (isBuy)
+            {
+                _settings.SigenergyBuyThresholds = thresholds;
+                OnPropertyChanged(nameof(SigenergyBuyLowBelow));
+                OnPropertyChanged(nameof(SigenergyBuyVeryHighAt));
+            }
+            else
+            {
+                _settings.SigenergySellThresholds = thresholds;
+                OnPropertyChanged(nameof(SigenergySellLowBelow));
+                OnPropertyChanged(nameof(SigenergySellVeryHighAt));
+            }
+
+            _settingsStore.Save(_settings);
+            if (IsSigenergySelected && EnergyPrices is { } prices)
+            {
+                EnergyPrices = LabelSigenergyPrices(prices);
+            }
+        }
+
+        private EnergyPriceSnapshot LabelSigenergyPrices(EnergyPriceSnapshot prices) => prices with
+        {
+            Buy = _settings.SigenergyBuyThresholds.Label(prices.Buy),
+            Sell = _settings.SigenergySellThresholds.Label(prices.Sell),
+        };
 
         private IEnergyPriceProvider? _configuredEnergyPriceProvider;
         private IEnergyPriceProvider? _sigenergyPriceProvider;
@@ -369,27 +434,38 @@ namespace SigCompanion.ViewModels
                 {
                     OnPropertyChanged(nameof(BuyPriceLevelBrush));
                     OnPropertyChanged(nameof(SellPriceLevelBrush));
+                    OnPropertyChanged(nameof(BuyPriceLevelTextBrush));
+                    OnPropertyChanged(nameof(SellPriceLevelTextBrush));
                     OnPropertyChanged(nameof(BuyEnergyPriceText));
                     OnPropertyChanged(nameof(SellEnergyPriceText));
                     OnPropertyChanged(nameof(TodayEnergyTotalText));
                     OnPropertyChanged(nameof(TodayEnergyTotalBrush));
+                    OnPropertyChanged(nameof(YesterdayEnergyTotalText));
+                    OnPropertyChanged(nameof(YesterdayEnergyTotalBrush));
                 }
             }
         }
 
         public IBrush BuyPriceLevelBrush => GetPriceLevelBrush(EnergyPrices?.Buy.PriceLevel);
         public IBrush SellPriceLevelBrush => GetPriceLevelBrush(EnergyPrices?.Sell.PriceLevel);
+        public IBrush BuyPriceLevelTextBrush => EnergyPrices?.Buy.PriceLevel == 7 ? Brushes.White : Brushes.Black;
+        public IBrush SellPriceLevelTextBrush => EnergyPrices?.Sell.PriceLevel == 7 ? Brushes.White : Brushes.Black;
         public string BuyEnergyPriceText => FormatEnergyRate(EnergyPrices?.Buy.CentsPerKwh);
         public string SellEnergyPriceText => FormatEnergyRate(EnergyPrices?.Sell.CentsPerKwh);
-        public string TodayEnergyTotalText =>
-            EnergyPrices?.TodayTotalDollars is decimal total && _configuredEnergyPriceProvider is { } provider
+        public string TodayEnergyTotalText => FormatEnergyTotal(EnergyPrices?.TodayTotalDollars);
+        public string YesterdayEnergyTotalText => FormatEnergyTotal(EnergyPrices?.YesterdayTotalDollars);
+
+        private static readonly IBrush DefaultEnergyTotalBrush = new SolidColorBrush(Color.Parse("#BEBEBE"));
+        public IBrush TodayEnergyTotalBrush => GetEnergyTotalBrush(EnergyPrices?.TodayTotalDollars);
+        public IBrush YesterdayEnergyTotalBrush => GetEnergyTotalBrush(EnergyPrices?.YesterdayTotalDollars);
+
+        private string FormatEnergyTotal(decimal? amount) =>
+            amount is decimal total && _configuredEnergyPriceProvider is { } provider
                 ? total.ToString("C", provider.CurrencyCulture)
                 : "—";
 
-        private static readonly IBrush DefaultEnergyTotalBrush = new SolidColorBrush(Color.Parse("#BEBEBE"));
-        public IBrush TodayEnergyTotalBrush => EnergyPrices?.TodayTotalDollars is < 0m
-            ? PowerColors.BatteryBrush
-            : DefaultEnergyTotalBrush;
+        private static IBrush GetEnergyTotalBrush(decimal? amount) =>
+            amount is < 0m ? PowerColors.BatteryBrush : DefaultEnergyTotalBrush;
 
         private string FormatEnergyRate(decimal? rate)
         {
@@ -416,6 +492,7 @@ namespace SigCompanion.ViewModels
             4 => Brushes.Yellow,
             5 => Brushes.DarkOrange,
             6 => Brushes.IndianRed,
+            7 => Brushes.DarkRed,
             0 => Brushes.Gray,
             _ => Brushes.Transparent,
         };
@@ -450,10 +527,15 @@ namespace SigCompanion.ViewModels
                 {
                     if (_isDemoMode && !IsAmberSelected && _latestDashboardHistory is { } history)
                     {
-                        prices = prices with { TodayTotalDollars = DemoDataProvider.GetSigenergyDailyCost(history, DateTime.Now) };
+                        var now = DateTime.Now;
+                        prices = prices with
+                        {
+                            TodayTotalDollars = DemoDataProvider.GetSigenergyDailyCost(history, now),
+                            YesterdayTotalDollars = DemoDataProvider.GetSigenergyYesterdayCost(history, now),
+                        };
                     }
 
-                    EnergyPrices = prices;
+                    EnergyPrices = IsSigenergySelected ? LabelSigenergyPrices(prices) : prices;
                 }
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -736,6 +818,8 @@ namespace SigCompanion.ViewModels
                 EnableAnimations = _settings.EnableAnimations,
                 ShowEnergyPrices = _settings.ShowEnergyPrices,
                 EnergyPriceProvider = EnergyPriceProvider,
+                SigenergyBuyThresholds = _settings.SigenergyBuyThresholds,
+                SigenergySellThresholds = _settings.SigenergySellThresholds,
                 ChartData = _settings.ChartData,
                 UseModbus = _settings.UseModbus,
                 ModbusHost = _settings.ModbusHost,

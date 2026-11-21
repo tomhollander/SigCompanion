@@ -1,3 +1,4 @@
+using System.Text.Json;
 using SigCompanion.Lib.EnergyPrices;
 using SigCompanion.Lib.Sigen;
 using SigCompanion.Lib.Sigen.Models;
@@ -6,6 +7,57 @@ namespace SigCompanion.Lib.Tests;
 
 public sealed class SigenergyEnergyPriceProviderTests
 {
+    [Fact]
+    public async Task RefreshPricesYesterdayGridHistoryWithCachedYesterdayTariffs()
+    {
+        const string yesterdayPath = "/electricity-price/api/price-preview/home/123?dt=2026-11-20";
+        const string todayPath = "/electricity-price/api/price-preview/home/123?dt=2026-11-21";
+        var requests = new List<string>();
+        using var client = new HttpClient(new StubHttpHandler(request =>
+        {
+            var path = request.RequestUri!.PathAndQuery;
+            requests.Add(path);
+            return path switch
+            {
+                "/device/owner/station/home" => """{"code":0,"data":{"stationId":123,"countryCode":"AU"}}""",
+                todayPath => """{"code":0,"data":{"pricePoints":[{"localTime":"2026-11-21T00:00:00","buyPrice":0.12,"sellPrice":0.04}]}}""",
+                yesterdayPath => """
+                    {"code":0,"data":{"pricePoints":[
+                        {"localTime":"2026-11-20T00:00:00","buyPrice":0.30,"sellPrice":0.06},
+                        {"localTime":"2026-11-20T12:00:00","buyPrice":0.20,"sellPrice":0.10}
+                    ]}}
+                    """,
+                _ => throw new InvalidOperationException($"Unexpected request: {path}"),
+            };
+        }));
+        var api = new SigenUiApi(new SigenCachedApiClient(new SigenApiClient(client)));
+        api.SetCredentials(new SigenCredentials { AccessToken = "test-token" });
+        var provider = new SigenergyEnergyPriceProvider(api);
+        var now = new DateTime(2026, 11, 21, 0, 10, 0);
+        using var today = JsonDocument.Parse("""
+            {"dataSeries":[{"id":"GRID","points":[{"time":"20261121 00:00","value":12}]}]}
+            """);
+        using var yesterday = JsonDocument.Parse("""
+            {"dataSeries":[{"id":"GRID","points":[{"time":"20261120 00:00","value":12},{"time":"20261120 12:00","value":-12}]}]}
+            """);
+        var history = new SigenHistoricalComparisonSnapshot
+        {
+            TodayDate = DateOnly.FromDateTime(now),
+            YesterdayDate = DateOnly.FromDateTime(now.AddDays(-1)),
+            StationCards = [],
+            TodayChartData = today.RootElement,
+            YesterdayChartData = yesterday.RootElement,
+        };
+
+        var first = await provider.GetPricesAsync(history, now);
+        var second = await provider.GetPricesAsync(history, now.AddMinutes(2));
+
+        Assert.Equal(0.12m, first.TodayTotalDollars);
+        Assert.Equal(0.20m, first.YesterdayTotalDollars);
+        Assert.Equal(first, second);
+        Assert.Equal(new[] { "/device/owner/station/home", todayPath, yesterdayPath, todayPath }, requests);
+    }
+
     [Fact]
     public async Task RefreshCachesStationAndSelectsLastPriceStrictlyBeforeNow()
     {

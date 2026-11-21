@@ -27,6 +27,7 @@ public sealed partial class AmberEnergyPriceProvider : IEnergyPriceProvider
     public async Task<EnergyPriceSnapshot> GetPricesAsync(CancellationToken cancellationToken = default)
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
+        var yesterday = today.AddDays(-1);
         var siteId = await GetSiteIdAsync(cancellationToken).ConfigureAwait(false);
         var sitePath = $"sites/{Uri.EscapeDataString(siteId)}";
         var prices = await GetAsync($"{sitePath}/prices/current",
@@ -40,12 +41,15 @@ public sealed partial class AmberEnergyPriceProvider : IEnergyPriceProvider
         }
 
         var usagePath = string.Create(CultureInfo.InvariantCulture,
-            $"{sitePath}/usage?startDate={today:yyyy-MM-dd}&endDate={today.AddDays(1):yyyy-MM-dd}");
+            $"{sitePath}/usage?startDate={yesterday:yyyy-MM-dd}&endDate={today.AddDays(1):yyyy-MM-dd}");
         var usage = await GetAsync(usagePath, AmberJsonContext.Default.UsageIntervalArray, cancellationToken)
             .ConfigureAwait(false);
+        var totals = usage.GroupBy(interval => interval.Date)
+            .ToDictionary(group => group.Key, group => group.Sum(interval => interval.Cost));
 
         return new EnergyPriceSnapshot(ToTariff(buy, "General usage", buy.PerKwh),
-            ToTariff(sell, "Feed-in", -sell.PerKwh), usage.Sum(interval => interval.Cost));
+            ToTariff(sell, "Feed-in", -sell.PerKwh), totals.GetValueOrDefault(today),
+            totals.TryGetValue(yesterday, out var yesterdayTotal) ? yesterdayTotal : null);
     }
 
     private async Task<string> GetSiteIdAsync(CancellationToken cancellationToken)
@@ -106,7 +110,7 @@ public sealed partial class AmberEnergyPriceProvider : IEnergyPriceProvider
         [property: JsonRequired] decimal PerKwh,
         [property: JsonRequired] string Descriptor);
 
-    private sealed record UsageInterval([property: JsonRequired] decimal Cost);
+    private sealed record UsageInterval([property: JsonRequired] DateOnly Date, [property: JsonRequired] decimal Cost);
 
     [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
     [JsonSerializable(typeof(Site[]))]

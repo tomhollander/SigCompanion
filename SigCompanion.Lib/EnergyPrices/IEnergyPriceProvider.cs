@@ -12,4 +12,5 @@ public interface IEnergyPriceProvider
 
 public sealed record EnergyTariff(decimal CentsPerKwh, string TariffName, string PriceLevelName, int PriceLevel);
 
-public sealed record EnergyPriceSnapshot(EnergyTariff Buy, EnergyTariff Sell, decimal? TodayTotalDollars);
+public sealed record EnergyPriceSnapshot(EnergyTariff Buy, EnergyTariff Sell, decimal? TodayTotalDollars,
+    decimal? YesterdayTotalDollars = null);

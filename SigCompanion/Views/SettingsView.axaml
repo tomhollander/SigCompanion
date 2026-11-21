@@ -50,6 +50,19 @@
                                 <TextBlock Text="API Key" Margin="15,0,0,0" Foreground="#BEBEBE" />
                                 <TextBox Text="{Binding AmberApiKey, Mode=TwoWay}" Margin="15,0,0,0" PasswordChar="*" MinWidth="260" />
                             </StackPanel>
+                            <StackPanel Spacing="6" Margin="15,0,0,0" IsVisible="{Binding IsSigenergySelected}">
+                                <TextBlock Text="Buy price thresholds" Foreground="#FFFFFF" FontWeight="SemiBold" />
+                                <TextBlock Text="Low if below" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding SigenergyBuyLowBelow, Mode=TwoWay}" Minimum="0" Maximum="{Binding SigenergyBuyVeryHighAt}" Increment="1" FormatString="0" ClipValueToMinMax="True" />
+                                <TextBlock Text="Very high from" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding SigenergyBuyVeryHighAt, Mode=TwoWay}" Minimum="{Binding SigenergyBuyLowBelow}" Maximum="2147483647" Increment="1" FormatString="0" ClipValueToMinMax="True" />
+                                <TextBlock Text="Sell price thresholds" Foreground="#FFFFFF" FontWeight="SemiBold" />
+                                <TextBlock Text="Low if below" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding SigenergySellLowBelow, Mode=TwoWay}" Minimum="0" Maximum="{Binding SigenergySellVeryHighAt}" Increment="1" FormatString="0" ClipValueToMinMax="True" />
+                                <TextBlock Text="Very high from" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding SigenergySellVeryHighAt, Mode=TwoWay}" Minimum="{Binding SigenergySellLowBelow}" Maximum="2147483647" Increment="1" FormatString="0" ClipValueToMinMax="True" />
+                                <TextBlock Text="Enter minor currency units per kWh (for example, cents or pence)." Foreground="#BEBEBE" TextWrapping="Wrap" />
+                            </StackPanel>
                         </StackPanel>
                         <StackPanel Spacing="6">
                             <TextBlock Text="Chart data" Foreground="#BEBEBE" />

@@ -23,7 +23,7 @@ public sealed class AmberEnergyPriceProviderTests
                     """[{"channelType":"feedIn","perKwh":-8.75349,"descriptor":"high"},{"channelType":"general","perKwh":17.8818,"descriptor":"veryLow"}]""",
                 "/v1/sites/first/prices/current" =>
                     """[{"channelType":"general","perKwh":20,"descriptor":"unmappedValue"},{"channelType":"feedIn","perKwh":-9,"descriptor":"high"}]""",
-                "/v1/sites/first/usage" => """[{"cost":3.25},{"cost":-0.65},{"cost":0.25}]""",
+                "/v1/sites/first/usage" => UsageResponse(request.RequestUri.Query),
                 _ => throw new InvalidOperationException($"Unexpected request: {path}"),
             };
         }));
@@ -46,8 +46,23 @@ public sealed class AmberEnergyPriceProviderTests
         Assert.Equal((20m, "unmappedValue", 0), (second.Buy.CentsPerKwh, second.Buy.PriceLevelName, second.Buy.PriceLevel));
         Assert.Equal(2.85m, first.TodayTotalDollars);
         Assert.Equal(2.85m, second.TodayTotalDollars);
+        Assert.Equal(-0.75m, first.YesterdayTotalDollars);
+        Assert.Equal(-0.75m, second.YesterdayTotalDollars);
     }
 
     private static string UsagePath(DateTime date) => string.Create(CultureInfo.InvariantCulture,
-        $"/v1/sites/first/usage?startDate={date:yyyy-MM-dd}&endDate={date.AddDays(1):yyyy-MM-dd}");
+        $"/v1/sites/first/usage?startDate={date.AddDays(-1):yyyy-MM-dd}&endDate={date.AddDays(1):yyyy-MM-dd}");
+
+    private static string UsageResponse(string query)
+    {
+        var yesterday = DateOnly.ParseExact(query[11..21], "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        return string.Create(CultureInfo.InvariantCulture, $$"""
+            [{"date":"{{yesterday:yyyy-MM-dd}}","cost":-1.00},
+             {"date":"{{yesterday.AddDays(1):yyyy-MM-dd}}","cost":3.25},
+             {"date":"{{yesterday.AddDays(1):yyyy-MM-dd}}","cost":-0.65},
+             {"date":"{{yesterday.AddDays(1):yyyy-MM-dd}}","cost":0.25},
+             {"date":"{{yesterday:yyyy-MM-dd}}","cost":0.25},
+             {"date":"{{yesterday.AddDays(2):yyyy-MM-dd}}","cost":99}]
+            """);
+    }
 }

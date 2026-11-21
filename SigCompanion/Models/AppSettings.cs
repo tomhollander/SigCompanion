@@ -18,6 +18,8 @@ public sealed class AppSettings
     public bool ShowEnergyPrices { get; set; }
     public string EnergyPriceProvider { get; set; } = EnergyPriceProviderFactory.Amber;
     public string? AmberApiKey { get; set; }
+    public SigenergyPriceThresholds SigenergyBuyThresholds { get; set; } = SigenergyPriceThresholds.DefaultBuy;
+    public SigenergyPriceThresholds SigenergySellThresholds { get; set; } = SigenergyPriceThresholds.DefaultSell;
     public string ChartData { get; set; } = "Power";
     public bool UseModbus { get; set; }
     public string? ModbusHost { get; set; }

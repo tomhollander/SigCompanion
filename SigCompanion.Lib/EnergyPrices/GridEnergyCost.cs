@@ -7,14 +7,26 @@ namespace SigCompanion.Lib.EnergyPrices;
 public static class GridEnergyCost
 {
     public static decimal? CalculateToday(SigenHistoricalComparisonSnapshot history, DateTime now,
+        IReadOnlyList<(DateTime LocalTime, decimal BuyPrice, decimal SellPrice)> prices) =>
+        history.TodayDate == DateOnly.FromDateTime(now)
+            ? Calculate(history.TodayChartData, history.TodayDate, now, prices)
+            : null;
+
+    public static decimal? CalculateYesterday(SigenHistoricalComparisonSnapshot history, DateTime now,
+        IReadOnlyList<(DateTime LocalTime, decimal BuyPrice, decimal SellPrice)> prices) =>
+        history.YesterdayDate == DateOnly.FromDateTime(now).AddDays(-1)
+            ? Calculate(history.YesterdayChartData, history.YesterdayDate, now, prices)
+            : null;
+
+    private static decimal? Calculate(JsonElement chartData, DateOnly date, DateTime now,
         IReadOnlyList<(DateTime LocalTime, decimal BuyPrice, decimal SellPrice)> prices)
     {
-        if (history.TodayDate != DateOnly.FromDateTime(now) || history.TodayChartData.ValueKind != JsonValueKind.Object)
+        if (chartData.ValueKind != JsonValueKind.Object)
         {
             return null;
         }
 
-        var chart = history.TodayChartData.Deserialize<SigenHistoricalChartData>();
+        var chart = chartData.Deserialize<SigenHistoricalChartData>();
         var samples = (chart?.DataSeries ?? [])
             .Where(series => series.Id == "GRID")
             .SelectMany(series => series.Points ?? []);
@@ -26,7 +38,7 @@ public static class GridEnergyCost
         {
             if (sample.Value is not decimal power ||
                 !DateTime.TryParseExact(sample.Time, "yyyyMMdd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time) ||
-                DateOnly.FromDateTime(time) != history.TodayDate || time > now)
+                DateOnly.FromDateTime(time) != date || time > now)
             {
                 continue;
             }

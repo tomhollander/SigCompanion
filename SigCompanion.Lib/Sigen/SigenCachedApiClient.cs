@@ -44,6 +44,10 @@ public sealed class SigenCachedApiClient
     internal Task<JsonElement> GetHomePricePreviewAsync(long stationId, DateOnly date, CancellationToken cancellationToken) =>
         _innerClient.GetHomePricePreviewAsync(stationId, date, cancellationToken);
 
+    internal Task<JsonElement> GetHistoricalHomePricePreviewAsync(long stationId, DateOnly date, CancellationToken cancellationToken) =>
+        GetOrSetAsync($"station:{stationId}:price-preview:{date.DayNumber}", TimeSpan.FromHours(1),
+            token => _innerClient.GetHomePricePreviewAsync(stationId, date, token), cancellationToken);
+
     public Task<SigenApiEnvelope<string>> GetSystemListAsync(
         TimeSpan cachePeriod,
         CancellationToken cancellationToken = default) =>

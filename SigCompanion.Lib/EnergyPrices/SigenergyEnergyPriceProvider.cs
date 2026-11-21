@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using SigCompanion.Lib.Sigen;
 using SigCompanion.Lib.Sigen.Models;
 
@@ -19,13 +20,10 @@ public sealed class SigenergyEnergyPriceProvider(SigenUiApi api) : IEnergyPriceP
         DateTime now, CancellationToken cancellationToken = default)
     {
         var station = await GetStationAsync(cancellationToken).ConfigureAwait(false);
-        var data = await api.GetHomePricePreviewAsync(station.Id, DateOnly.FromDateTime(now), cancellationToken)
+        var today = DateOnly.FromDateTime(now);
+        var data = await api.GetHomePricePreviewAsync(station.Id, today, cancellationToken)
             .ConfigureAwait(false);
-        var prices = data.GetProperty("pricePoints").EnumerateArray()
-            .Select(point => (LocalTime: point.GetProperty("localTime").GetDateTime(),
-                BuyPrice: point.GetProperty("buyPrice").GetDecimal(),
-                SellPrice: point.GetProperty("sellPrice").GetDecimal()))
-            .ToArray();
+        var prices = ReadPrices(data);
         for (var i = prices.Length - 1; i >= 0; i--)
         {
             var point = prices[i];
@@ -34,14 +32,36 @@ public sealed class SigenergyEnergyPriceProvider(SigenUiApi api) : IEnergyPriceP
                 continue;
             }
 
+            decimal? yesterdayTotal = null;
+            if (history is not null && history.YesterdayDate == today.AddDays(-1) &&
+                history.YesterdayChartData.ValueKind == JsonValueKind.Object)
+            {
+                try
+                {
+                    var yesterday = await api.GetHistoricalHomePricePreviewAsync(station.Id, history.YesterdayDate, cancellationToken)
+                        .ConfigureAwait(false);
+                    yesterdayTotal = GridEnergyCost.CalculateYesterday(history, now, ReadPrices(yesterday));
+                }
+                catch (Exception) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // Yesterday's prices are optional; still return today's data.
+                }
+            }
+
             return new EnergyPriceSnapshot(
                 new EnergyTariff(point.BuyPrice * 100m, "General usage", string.Empty, 0),
                 new EnergyTariff(point.SellPrice * 100m, "Feed-in", string.Empty, 0),
-                history is null ? null : GridEnergyCost.CalculateToday(history, now, prices));
+                history is null ? null : GridEnergyCost.CalculateToday(history, now, prices), yesterdayTotal);
         }
 
         throw new InvalidOperationException("Sigenergy returned no price point before the current local time.");
     }
+
+    private static (DateTime LocalTime, decimal BuyPrice, decimal SellPrice)[] ReadPrices(JsonElement data) =>
+        data.GetProperty("pricePoints").EnumerateArray()
+            .Select(point => (point.GetProperty("localTime").GetDateTime(),
+                point.GetProperty("buyPrice").GetDecimal(), point.GetProperty("sellPrice").GetDecimal()))
+            .ToArray();
 
     private async Task<Station> GetStationAsync(CancellationToken cancellationToken)
     {

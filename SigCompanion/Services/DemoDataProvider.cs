@@ -17,13 +17,18 @@ namespace SigCompanion.Services
         public static IEnergyPriceProvider GetEnergyPriceProvider(bool isAmber) => new DemoEnergyPriceProvider(isAmber);
 
         public static decimal? GetSigenergyDailyCost(SigenHistoricalComparisonSnapshot history, DateTime now) =>
-            GridEnergyCost.CalculateToday(history, now,
+            GridEnergyCost.CalculateToday(history, now, GetDemoTariffSchedule(now.Date));
+
+        public static decimal? GetSigenergyYesterdayCost(SigenHistoricalComparisonSnapshot history, DateTime now) =>
+            GridEnergyCost.CalculateYesterday(history, now, GetDemoTariffSchedule(now.Date.AddDays(-1)));
+
+        private static (DateTime LocalTime, decimal BuyPrice, decimal SellPrice)[] GetDemoTariffSchedule(DateTime day) =>
             [
-                (now.Date, 0.25m, 0.09m),
-                (now.Date.AddHours(10), 0.18m, 0.09m),
-                (now.Date.AddHours(16), 0.38m, 0.09m),
-                (now.Date.AddHours(21), 0.25m, 0.09m),
-            ]);
+                (day, 0.25m, 0.09m),
+                (day.AddHours(10), 0.18m, 0.09m),
+                (day.AddHours(16), 0.38m, 0.09m),
+                (day.AddHours(21), 0.25m, 0.09m),
+            ];
 
         private sealed class DemoEnergyPriceProvider(bool isAmber) : IEnergyPriceProvider
         {
@@ -45,7 +50,8 @@ namespace SigCompanion.Services
                 return Task.FromResult(new EnergyPriceSnapshot(
                     new EnergyTariff(buyPrice, "General usage", isAmber ? name : string.Empty, isAmber ? level : 0),
                     new EnergyTariff(9m, "Feed-in", isAmber ? "High" : string.Empty, isAmber ? 5 : 0),
-                    isAmber ? 1.24m : null));
+                    isAmber ? 1.24m : null,
+                    isAmber ? 2.35m : null));
             }
         }
 
