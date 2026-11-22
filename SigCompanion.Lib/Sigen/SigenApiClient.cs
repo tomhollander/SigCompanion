@@ -265,6 +265,20 @@ public sealed class SigenApiClient
             new Dictionary<string, string> { ["dt"] = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
             cancellationToken);
 
+    internal async Task<decimal> GetDailyBillTotalAsync(long stationId, DateOnly date, CancellationToken cancellationToken)
+    {
+        var day = date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        var data = await GetAuthorizedDataAsync("/data-process/sigen/station/statistics/bill",
+            new Dictionary<string, string>
+            {
+                ["stationId"] = stationId.ToString(CultureInfo.InvariantCulture),
+                ["dateFlag"] = "1",
+                ["startDate"] = day,
+                ["endDate"] = day,
+            }, cancellationToken).ConfigureAwait(false);
+        return data.GetProperty("total").GetDecimal();
+    }
+
     private async Task<JsonElement> GetAuthorizedDataAsync(string path, IReadOnlyDictionary<string, string>? query,
         CancellationToken cancellationToken)
     {

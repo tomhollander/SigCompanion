@@ -478,7 +478,7 @@ namespace SigCompanion.ViewModels
                     ? DemoDataProvider.GetEnergyPriceProvider()
                     : (_sigenergyPriceProvider ??= EnergyPriceProviderFactory.Create(EnergyPriceProviderFactory.Sigenergy, _sigenUiApi));
                 var prices = provider is SigenergyEnergyPriceProvider sigenergy
-                    ? await sigenergy.GetPricesAsync(_latestDashboardHistory, GetSigenergyLocalTime(), cancellationToken)
+                    ? await sigenergy.GetPricesAsync(GetSigenergyLocalTime(), cancellationToken)
                     : await provider.GetPricesAsync(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (ShowEnergyPrices && ReferenceEquals(_configuredEnergyPriceProvider, provider))

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using SigCompanion.Lib.EnergyPrices;
 using SigCompanion.Lib.Sigen;
 using SigCompanion.Lib.Sigen.Models;
@@ -19,25 +18,27 @@ public sealed class SigenergyEnergyPriceProviderTests
     }
 
     [Fact]
-    public async Task RefreshPricesYesterdayGridHistoryWithCachedYesterdayTariffs()
+    public async Task RefreshGetsFreshTodayBillAndCachesYesterdayBillWithReversedSigns()
     {
-        const string yesterdayPath = "/electricity-price/api/price-preview/home/123?dt=2026-11-20";
-        const string todayPath = "/electricity-price/api/price-preview/home/123?dt=2026-11-21";
+        const string pricePath = "/electricity-price/api/price-preview/home/123?dt=2026-11-21";
+        const string todayBillPath = "/data-process/sigen/station/statistics/bill?stationId=123&dateFlag=1&startDate=20261121&endDate=20261121";
+        const string yesterdayBillPath = "/data-process/sigen/station/statistics/bill?stationId=123&dateFlag=1&startDate=20261120&endDate=20261120";
         var requests = new List<string>();
+        var todayBillRequests = 0;
         using var client = new HttpClient(new StubHttpHandler(request =>
         {
+            Assert.Equal(HttpMethod.Get, request.Method);
+            Assert.Equal("Bearer test-token", request.Headers.Authorization?.ToString());
             var path = request.RequestUri!.PathAndQuery;
             requests.Add(path);
             return path switch
             {
                 "/device/owner/station/home" => """{"code":0,"data":{"stationId":123,"countryCode":"AU"}}""",
-                todayPath => """{"code":0,"data":{"pricePoints":[{"localTime":"2026-11-21T00:00:00","buyPrice":0.12,"sellPrice":0.04}]}}""",
-                yesterdayPath => """
-                    {"code":0,"data":{"pricePoints":[
-                        {"localTime":"2026-11-20T00:00:00","buyPrice":0.30,"sellPrice":0.06},
-                        {"localTime":"2026-11-20T12:00:00","buyPrice":0.20,"sellPrice":0.10}
-                    ]}}
-                    """,
+                pricePath => """{"code":0,"data":{"pricePoints":[{"localTime":"2026-11-21T00:00:00","buyPrice":0.12,"sellPrice":0.04}]}}""",
+                todayBillPath => ++todayBillRequests == 1
+                    ? """{"code":0,"data":{"stationId":123,"total":-0.05,"saleRevenue":0.04,"purchaseExpense":0.09,"fixedDailyFee":0,"dataSeries":[]}}"""
+                    : """{"code":0,"data":{"total":-0.08}}""",
+                yesterdayBillPath => """{"code":0,"data":{"total":0.20}}""",
                 _ => throw new InvalidOperationException($"Unexpected request: {path}"),
             };
         }));
@@ -45,40 +46,26 @@ public sealed class SigenergyEnergyPriceProviderTests
         api.SetCredentials(new SigenCredentials { AccessToken = "test-token" });
         var provider = new SigenergyEnergyPriceProvider(api);
         var now = new DateTime(2026, 11, 21, 0, 10, 0);
-        using var today = JsonDocument.Parse("""
-            {"dataSeries":[{"id":"GRID","points":[{"time":"20261121 00:00","value":12}]}]}
-            """);
-        using var yesterday = JsonDocument.Parse("""
-            {"dataSeries":[{"id":"GRID","points":[{"time":"20261120 00:00","value":12},{"time":"20261120 12:00","value":-12}]}]}
-            """);
-        var history = new SigenHistoricalComparisonSnapshot
-        {
-            TodayDate = DateOnly.FromDateTime(now),
-            YesterdayDate = DateOnly.FromDateTime(now.AddDays(-1)),
-            StationCards = [],
-            TodayChartData = today.RootElement,
-            YesterdayChartData = yesterday.RootElement,
-        };
 
-        var first = await provider.GetPricesAsync(history, now);
-        var second = await provider.GetPricesAsync(history, now.AddMinutes(2));
+        var first = await provider.GetPricesAsync(now);
+        var second = await provider.GetPricesAsync(now.AddMinutes(2));
 
-        Assert.Equal(0.12m, first.TodayTotalDollars);
-        Assert.Equal(0.20m, first.YesterdayTotalDollars);
-        Assert.Equal(first, second);
-        Assert.Equal(new[] { "/device/owner/station/home", todayPath, yesterdayPath, todayPath }, requests);
+        Assert.Equal(0.05m, first.TodayTotalDollars);
+        Assert.Equal(-0.20m, first.YesterdayTotalDollars);
+        Assert.Equal(0.08m, second.TodayTotalDollars);
+        Assert.Equal(first.YesterdayTotalDollars, second.YesterdayTotalDollars);
+        Assert.Equal(new[] { "/device/owner/station/home", pricePath, todayBillPath, yesterdayBillPath, pricePath, todayBillPath }, requests);
     }
 
     [Fact]
-    public async Task RefreshCachesStationAndSelectsLastPriceStrictlyBeforeNow()
+    public async Task RefreshSelectsLastPriceStrictlyBeforeNowAndRetriesMissingYesterdayBill()
     {
-        var requests = new List<string>();
+        var yesterdayBillRequests = 0;
         using var client = new HttpClient(new StubHttpHandler(request =>
         {
             Assert.Equal(HttpMethod.Get, request.Method);
             Assert.Equal("Bearer test-token", request.Headers.Authorization?.ToString());
             var path = request.RequestUri!.PathAndQuery;
-            requests.Add(path);
             return path switch
             {
                 "/device/owner/station/home" =>
@@ -91,6 +78,12 @@ public sealed class SigenergyEnergyPriceProviderTests
                         {"localTime":"2026-11-21T00:15:00","buyPrice":0.99,"sellPrice":0.99}
                     ]}}
                     """,
+                "/data-process/sigen/station/statistics/bill?stationId=2611171411291222&dateFlag=1&startDate=20261121&endDate=20261121" =>
+                    """{"code":0,"data":{"total":0}}""",
+                "/data-process/sigen/station/statistics/bill?stationId=2611171411291222&dateFlag=1&startDate=20261120&endDate=20261120" =>
+                    ++yesterdayBillRequests == 1
+                        ? """{"code":0,"data":{}}"""
+                        : """{"code":0,"data":{"total":0.10}}""",
                 _ => throw new InvalidOperationException($"Unexpected request: {path}"),
             };
         }));
@@ -100,17 +93,17 @@ public sealed class SigenergyEnergyPriceProviderTests
             EnergyPriceProviderFactory.Create(EnergyPriceProviderFactory.Sigenergy, api));
         var now = new DateTime(2026, 11, 21, 0, 10, 0);
 
-        var first = await provider.GetPricesAsync(null, now);
-        var second = await provider.GetPricesAsync(null, now.AddSeconds(1));
+        var first = await provider.GetPricesAsync(now);
+        var second = await provider.GetPricesAsync(now.AddSeconds(1));
 
-        Assert.Equal(3, requests.Count);
-        Assert.Equal("/device/owner/station/home", requests[0]);
-        Assert.Equal(requests[1], requests[2]);
         Assert.Equal(8m, first.Buy.CentsPerKwh);
         Assert.Equal(3m, first.Sell.CentsPerKwh);
         Assert.Empty(first.Buy.PriceLevelName);
-        Assert.Null(first.TodayTotalDollars);
+        Assert.Equal(0m, first.TodayTotalDollars);
+        Assert.Null(first.YesterdayTotalDollars);
         Assert.Equal(20m, second.Buy.CentsPerKwh);
+        Assert.Equal(-0.10m, second.YesterdayTotalDollars);
+        Assert.Equal(2, yesterdayBillRequests);
         Assert.Equal("en-GB", provider.CurrencyCulture.Name);
         Assert.Equal("p", provider.MinorUnitSuffix);
     }
