@@ -31,7 +31,7 @@ public sealed class SigenModbusClientTests
         Assert.Equal(failAc ? 1 : 2, server.Requests.Count(request => request.Address == 32003));
         Assert.All(server.Requests.Where(request => request.Address is 31502 or 32003), request =>
         {
-            Assert.Equal(4, request.Function);
+            Assert.Equal(3, request.Function);
             Assert.Equal(2, request.Count);
         });
         Assert.All(server.Requests.Where(request => request.Address is 30000 or 30284 or 30194), request =>

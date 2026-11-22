@@ -8,7 +8,6 @@ namespace SigCompanion.Lib.Sigen.Modbus;
 public sealed class SigenModbusClient : IDisposable
 {
     private const byte ReadHoldingRegistersFunction = 0x03;
-    private const byte ReadInputRegistersFunction = 0x04;
     private const ushort PlantInfoStartAddress = 30000;
     private const ushort PlantInfoRegisterCount = 72;
     private const ushort TotalLoadPowerAddress = 30284;
@@ -75,9 +74,9 @@ public sealed class SigenModbusClient : IDisposable
         };
 #endif
 
-        var registers = await ReadInputRegistersAsync(PlantInfoStartAddress, PlantInfoRegisterCount, cancellationToken);
-        var totalLoadRegisters = await ReadInputRegistersAsync(TotalLoadPowerAddress, 2, cancellationToken);
-        var thirdPartyInverterRegisters = await ReadInputRegistersAsync(ThirdPartyInverterActivePowerAddress, 2, cancellationToken);
+        var registers = await ReadHoldingRegistersAsync(PlantInfoStartAddress, PlantInfoRegisterCount, cancellationToken);
+        var totalLoadRegisters = await ReadHoldingRegistersAsync(TotalLoadPowerAddress, 2, cancellationToken);
+        var thirdPartyInverterRegisters = await ReadHoldingRegistersAsync(ThirdPartyInverterActivePowerAddress, 2, cancellationToken);
         var dcEvChargingPower = _dcEvChargingAvailable
             ? await ReadOptionalEvChargingPowerAsync(DcEvChargingPowerAddress, cancellationToken)
             : null;
@@ -141,7 +140,7 @@ public sealed class SigenModbusClient : IDisposable
     {
         try
         {
-            var registers = await ReadInputRegistersAsync(address, 2, cancellationToken, ReadInputRegistersFunction);
+            var registers = await ReadHoldingRegistersAsync(address, 2, cancellationToken);
             return (decimal)BinaryPrimitives.ReadInt32BigEndian(registers) / 1000;
         }
         catch (Exception ex) when (ex is IOException or SocketException or TimeoutException)
@@ -152,7 +151,7 @@ public sealed class SigenModbusClient : IDisposable
         }
     }
 
-    private async Task<byte[]> ReadInputRegistersAsync(ushort startAddress, ushort count, CancellationToken cancellationToken, byte function = ReadHoldingRegistersFunction)
+    private async Task<byte[]> ReadHoldingRegistersAsync(ushort startAddress, ushort count, CancellationToken cancellationToken)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(RequestTimeout);
@@ -164,7 +163,7 @@ public sealed class SigenModbusClient : IDisposable
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(2), 0);
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(4), 6);
         request[6] = _slaveAddress;
-        request[7] = function;
+        request[7] = ReadHoldingRegistersFunction;
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(8), startAddress);
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(10), count);
 
@@ -196,7 +195,7 @@ public sealed class SigenModbusClient : IDisposable
             }
 
             var body = payload.AsSpan(1).ToArray();
-            return ParseResponse(body, startAddress, count, function);
+            return ParseResponse(body, startAddress, count);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -210,20 +209,20 @@ public sealed class SigenModbusClient : IDisposable
         }
     }
 
-    private static byte[] ParseResponse(byte[] body, ushort startAddress, ushort count, byte function)
+    private static byte[] ParseResponse(byte[] body, ushort startAddress, ushort count)
     {
         if (body.Length < 2)
         {
             throw new IOException("Invalid Modbus response length.");
         }
 
-        if (body[0] == (function | 0x80))
+        if (body[0] == (ReadHoldingRegistersFunction | 0x80))
         {
             throw new IOException($"Modbus exception code {body[1]} reading registers starting at {startAddress}.");
         }
 
         var byteCount = body[1];
-        if (body[0] != function || byteCount != count * 2 || body.Length != byteCount + 2)
+        if (body[0] != ReadHoldingRegistersFunction || byteCount != count * 2 || body.Length != byteCount + 2)
         {
             throw new IOException("Unexpected Modbus response.");
         }
