@@ -41,13 +41,7 @@
                         <TextBlock Text="Features" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
                         <ToggleSwitch Content="Show energy prices" Foreground="#FFFFFF" IsChecked="{Binding ShowEnergyPrices, Mode=TwoWay}" />
                         <StackPanel Spacing="6" IsVisible="{Binding ShowEnergyPrices}">
-                            <TextBlock Text="Provider" Foreground="#BEBEBE" />
-                            <ComboBox ItemsSource="{Binding EnergyPriceProviders}" SelectedItem="{Binding EnergyPriceProvider, Mode=TwoWay}" HorizontalAlignment="Stretch" MinWidth="260" />
-                            <StackPanel Spacing="6" IsVisible="{Binding IsAmberSelected}">
-                                <TextBlock Text="API Key" Margin="15,0,0,0" Foreground="#BEBEBE" />
-                                <TextBox Text="{Binding AmberApiKey, Mode=TwoWay}" Margin="15,0,0,0" PasswordChar="*" MinWidth="260" />
-                            </StackPanel>
-                            <StackPanel Spacing="6" Margin="15,0,0,0" IsVisible="{Binding IsSigenergySelected}">
+                            <StackPanel Spacing="6" Margin="15,0,0,0">
                                 <TextBlock Text="Buy price thresholds" Foreground="#FFFFFF" FontWeight="SemiBold" />
                                 <TextBlock Text="Low if below" Foreground="#BEBEBE" />
                                 <NumericUpDown Value="{Binding SigenergyBuyLowBelow, Mode=TwoWay}" Minimum="0" Maximum="{Binding SigenergyBuyVeryHighAt}" Increment="1" FormatString="0" ClipValueToMinMax="True" />

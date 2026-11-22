@@ -8,6 +8,17 @@ namespace SigCompanion.Lib.Tests;
 public sealed class SigenergyEnergyPriceProviderTests
 {
     [Fact]
+    public void FactoryOnlyRegistersSigenergyAndRejectsRemovedProviders()
+    {
+        using var client = new HttpClient(new StubHttpHandler(_ => throw new InvalidOperationException("Unexpected request.")));
+        var api = new SigenUiApi(new SigenCachedApiClient(new SigenApiClient(client)));
+
+        Assert.Equal(new[] { EnergyPriceProviderFactory.Sigenergy }, EnergyPriceProviderFactory.SupportedProviders);
+        Assert.IsType<SigenergyEnergyPriceProvider>(EnergyPriceProviderFactory.Create(EnergyPriceProviderFactory.Sigenergy, api));
+        Assert.Throws<ArgumentOutOfRangeException>(() => EnergyPriceProviderFactory.Create("Amber", api));
+    }
+
+    [Fact]
     public async Task RefreshPricesYesterdayGridHistoryWithCachedYesterdayTariffs()
     {
         const string yesterdayPath = "/electricity-price/api/price-preview/home/123?dt=2026-11-20";

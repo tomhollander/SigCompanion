@@ -318,28 +318,6 @@ namespace SigCompanion.ViewModels
             }
         }
 
-        public IReadOnlyList<string> EnergyPriceProviders => EnergyPriceProviderFactory.SupportedProviders;
-
-        private string energyPriceProvider = EnergyPriceProviderFactory.Amber;
-        public string EnergyPriceProvider
-        {
-            get => energyPriceProvider;
-            set
-            {
-                if (EnergyPriceProviders.Contains(value) && SetProperty(ref energyPriceProvider, value))
-                {
-                    ResetEnergyPriceProvider();
-                    _settings.EnergyPriceProvider = value;
-                    _settingsStore.Save(_settings);
-                    OnPropertyChanged(nameof(IsAmberSelected));
-                    OnPropertyChanged(nameof(IsSigenergySelected));
-                }
-            }
-        }
-
-        public bool IsAmberSelected => EnergyPriceProvider == EnergyPriceProviderFactory.Amber;
-        public bool IsSigenergySelected => EnergyPriceProvider == EnergyPriceProviderFactory.Sigenergy;
-
         public int SigenergyBuyLowBelow
         {
             get => _settings.SigenergyBuyThresholds.LowBelow;
@@ -391,7 +369,7 @@ namespace SigCompanion.ViewModels
             }
 
             _settingsStore.Save(_settings);
-            if (IsSigenergySelected && EnergyPrices is { } prices)
+            if (EnergyPrices is { } prices)
             {
                 EnergyPrices = LabelSigenergyPrices(prices);
             }
@@ -406,23 +384,6 @@ namespace SigCompanion.ViewModels
         private IEnergyPriceProvider? _configuredEnergyPriceProvider;
         private IEnergyPriceProvider? _sigenergyPriceProvider;
         private SigenHistoricalComparisonSnapshot? _latestDashboardHistory;
-        private string? amberApiKey;
-        public string? AmberApiKey
-        {
-            get => amberApiKey;
-            set
-            {
-                if (SetProperty(ref amberApiKey, value))
-                {
-                    ResetEnergyPriceProvider();
-                    if (!OperatingSystem.IsBrowser())
-                    {
-                        _settings.AmberApiKey = value;
-                        _settingsStore.Save(_settings);
-                    }
-                }
-            }
-        }
 
         private EnergyPriceSnapshot? energyPrices;
         public EnergyPriceSnapshot? EnergyPrices
@@ -505,8 +466,7 @@ namespace SigCompanion.ViewModels
 
         private async Task RefreshEnergyPricesAsync(CancellationToken cancellationToken = default)
         {
-            var apiKey = AmberApiKey;
-            if (!ShowEnergyPrices || (!_isDemoMode && IsAmberSelected && string.IsNullOrWhiteSpace(apiKey)))
+            if (!ShowEnergyPrices)
             {
                 EnergyPrices = null;
                 return;
@@ -515,17 +475,15 @@ namespace SigCompanion.ViewModels
             try
             {
                 var provider = _configuredEnergyPriceProvider ??= _isDemoMode
-                    ? DemoDataProvider.GetEnergyPriceProvider(IsAmberSelected)
-                    : IsAmberSelected
-                        ? EnergyPriceProviderFactory.Create(EnergyPriceProvider, _sigenUiApi, apiKey?.Trim())
-                        : (_sigenergyPriceProvider ??= EnergyPriceProviderFactory.Create(EnergyPriceProvider, _sigenUiApi));
+                    ? DemoDataProvider.GetEnergyPriceProvider()
+                    : (_sigenergyPriceProvider ??= EnergyPriceProviderFactory.Create(EnergyPriceProviderFactory.Sigenergy, _sigenUiApi));
                 var prices = provider is SigenergyEnergyPriceProvider sigenergy
                     ? await sigenergy.GetPricesAsync(_latestDashboardHistory, GetSigenergyLocalTime(), cancellationToken)
                     : await provider.GetPricesAsync(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (ShowEnergyPrices && ReferenceEquals(_configuredEnergyPriceProvider, provider))
                 {
-                    if (_isDemoMode && !IsAmberSelected && _latestDashboardHistory is { } history)
+                    if (_isDemoMode && _latestDashboardHistory is { } history)
                     {
                         var now = DateTime.Now;
                         prices = prices with
@@ -535,7 +493,7 @@ namespace SigCompanion.ViewModels
                         };
                     }
 
-                    EnergyPrices = IsSigenergySelected ? LabelSigenergyPrices(prices) : prices;
+                    EnergyPrices = LabelSigenergyPrices(prices);
                 }
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -650,11 +608,6 @@ namespace SigCompanion.ViewModels
         private async Task InitializeAsync()
         {
             _settings = _settingsStore.Load();
-            if (OperatingSystem.IsBrowser())
-            {
-                _settings.AmberApiKey = null;
-            }
-
             Telemetry.StartSession(() => _settings);
             Username = _settings.Username ?? string.Empty;
             Password = _settings.Password ?? string.Empty;
@@ -663,8 +616,6 @@ namespace SigCompanion.ViewModels
             CyclePagesWhenIdle = _settings.CyclePagesWhenIdle;
             EnableAnimations = _settings.EnableAnimations;
             ShowEnergyPrices = _settings.ShowEnergyPrices;
-            EnergyPriceProvider = _settings.EnergyPriceProvider;
-            amberApiKey = _settings.AmberApiKey;
             ChartData = _settings.ChartData;
             UseModbus = _settings.UseModbus;
             ModbusHost = _settings.ModbusHost;
@@ -817,7 +768,6 @@ namespace SigCompanion.ViewModels
                 CyclePagesWhenIdle = _settings.CyclePagesWhenIdle,
                 EnableAnimations = _settings.EnableAnimations,
                 ShowEnergyPrices = _settings.ShowEnergyPrices,
-                EnergyPriceProvider = EnergyPriceProvider,
                 SigenergyBuyThresholds = _settings.SigenergyBuyThresholds,
                 SigenergySellThresholds = _settings.SigenergySellThresholds,
                 ChartData = _settings.ChartData,
@@ -830,7 +780,6 @@ namespace SigCompanion.ViewModels
             Username = string.Empty;
             Password = string.Empty;
             SavePassword = false;
-            SetProperty(ref amberApiKey, null, nameof(AmberApiKey));
             _sigenergyPriceProvider = null;
             ResetEnergyPriceProvider();
             SelectedRegion = SigenRegions.Default;
@@ -877,10 +826,7 @@ namespace SigCompanion.ViewModels
         partial void OnSelectedSystemChanged(SigenSystemReference? value)
         {
             _latestDashboardHistory = null;
-            if (!IsAmberSelected)
-            {
-                EnergyPrices = null;
-            }
+            EnergyPrices = null;
 
             if (!_isAuthenticated || value is null)
             {

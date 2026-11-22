@@ -53,10 +53,10 @@
         <Viewbox Classes="totals-row" StretchDirection="DownOnly">
             <StackPanel Classes="daily-totals">
                 <TextBlock Foreground="#BEBEBE" FontSize="26" HorizontalAlignment="Center">
-                    <Run Text="Yesterday:&#160;" FontWeight="Light" /><Run Text="{Binding YesterdayEnergyTotalText}" Foreground="{Binding YesterdayEnergyTotalBrush}" />
+                    <Run Text="Yesterday:&#160;" FontSize="18" FontWeight="Light" /><Run Text="{Binding YesterdayEnergyTotalText}" Foreground="{Binding YesterdayEnergyTotalBrush}" />
                 </TextBlock>
                 <TextBlock Foreground="#BEBEBE" FontSize="26" HorizontalAlignment="Center">
-                    <Run Text="Today:&#160;" FontWeight="Light" /><Run Text="{Binding TodayEnergyTotalText}" Foreground="{Binding TodayEnergyTotalBrush}" />
+                    <Run Text="Today:&#160;" FontSize="18" FontWeight="Light" /><Run Text="{Binding TodayEnergyTotalText}" Foreground="{Binding TodayEnergyTotalBrush}" />
                 </TextBlock>
             </StackPanel>
         </Viewbox>

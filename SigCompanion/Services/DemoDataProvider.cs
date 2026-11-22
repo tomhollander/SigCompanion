@@ -14,7 +14,7 @@ namespace SigCompanion.Services
     {
         public const string Username = "demo";
 
-        public static IEnergyPriceProvider GetEnergyPriceProvider(bool isAmber) => new DemoEnergyPriceProvider(isAmber);
+        public static IEnergyPriceProvider GetEnergyPriceProvider() => new DemoEnergyPriceProvider();
 
         public static decimal? GetSigenergyDailyCost(SigenHistoricalComparisonSnapshot history, DateTime now) =>
             GridEnergyCost.CalculateToday(history, now, GetDemoTariffSchedule(now.Date));
@@ -30,7 +30,7 @@ namespace SigCompanion.Services
                 (day.AddHours(21), 0.25m, 0.09m),
             ];
 
-        private sealed class DemoEnergyPriceProvider(bool isAmber) : IEnergyPriceProvider
+        private sealed class DemoEnergyPriceProvider : IEnergyPriceProvider
         {
             public CultureInfo CurrencyCulture => CultureInfo.GetCultureInfo("en-AU");
             public string MinorUnitSuffix => "c";
@@ -40,18 +40,17 @@ namespace SigCompanion.Services
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var hour = DateTime.Now.Hour;
-                var (buyPrice, name, level) = hour switch
+                var buyPrice = hour switch
                 {
-                    >= 10 and < 16 => (18m, "Very Low", 2),
-                    >= 16 and < 21 => (38m, "High", 5),
-                    _ => (25m, "Neutral", 4),
+                    >= 10 and < 16 => 18m,
+                    >= 16 and < 21 => 38m,
+                    _ => 25m,
                 };
 
                 return Task.FromResult(new EnergyPriceSnapshot(
-                    new EnergyTariff(buyPrice, "General usage", isAmber ? name : string.Empty, isAmber ? level : 0),
-                    new EnergyTariff(9m, "Feed-in", isAmber ? "High" : string.Empty, isAmber ? 5 : 0),
-                    isAmber ? 1.24m : null,
-                    isAmber ? 2.35m : null));
+                    new EnergyTariff(buyPrice, "General usage", string.Empty, 0),
+                    new EnergyTariff(9m, "Feed-in", string.Empty, 0),
+                    null));
             }
         }
 
