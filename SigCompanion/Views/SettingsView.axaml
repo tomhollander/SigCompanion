@@ -41,18 +41,18 @@
                         <TextBlock Text="Features" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
                         <ToggleSwitch Foreground="#FFFFFF" IsChecked="{Binding ShowEnergyPrices, Mode=TwoWay}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Foreground="#FFFFFF">Show energy prices</TextBlock>
+                                <TextBlock Foreground="#FFFFFF">Show energy prices and cost estimates</TextBlock>
                                 <HyperlinkButton Padding="0" BorderThickness="0" NavigateUri="https://github.com/tomhollander/SigCompanion/wiki/Energy-Pricing"><Border Width="20" Height="20" CornerRadius="10" BorderBrush="#BEBEBE" BorderThickness="1"><TextBlock Text="i" Foreground="#BEBEBE" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></HyperlinkButton>
                             </StackPanel>
                         </ToggleSwitch>
                         <StackPanel Spacing="6" IsVisible="{Binding ShowEnergyPrices}">
                             <StackPanel Spacing="6" Margin="15,0,0,0">
-                                <TextBlock Text="Buy price thresholds" Foreground="#FFFFFF" FontWeight="SemiBold" />
+                                <TextBlock Text="Energy price level thresholds (Buy price)" Foreground="#FFFFFF" FontWeight="SemiBold" />
                                 <TextBlock Text="Low if below" Foreground="#BEBEBE" />
                                 <NumericUpDown Value="{Binding SigenergyBuyLowBelow, Mode=TwoWay}" Minimum="0" Maximum="{Binding SigenergyBuyVeryHighAt}" Increment="1" FormatString="0" ClipValueToMinMax="True" />
                                 <TextBlock Text="Very high from" Foreground="#BEBEBE" />
                                 <NumericUpDown Value="{Binding SigenergyBuyVeryHighAt, Mode=TwoWay}" Minimum="{Binding SigenergyBuyLowBelow}" Maximum="2147483647" Increment="1" FormatString="0" ClipValueToMinMax="True" />
-                                <TextBlock Text="Sell price thresholds" Foreground="#FFFFFF" FontWeight="SemiBold" />
+                                <TextBlock Text="Energy price level thresholds (Sell price)" Foreground="#FFFFFF" FontWeight="SemiBold" />
                                 <TextBlock Text="Low if below" Foreground="#BEBEBE" />
                                 <NumericUpDown Value="{Binding SigenergySellLowBelow, Mode=TwoWay}" Minimum="0" Maximum="{Binding SigenergySellVeryHighAt}" Increment="1" FormatString="0" ClipValueToMinMax="True" />
                                 <TextBlock Text="Very high from" Foreground="#BEBEBE" />

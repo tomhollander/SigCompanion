@@ -39,8 +39,11 @@ public sealed class SigenUiApi
     internal Task<JsonElement> GetHomePricePreviewAsync(long stationId, DateOnly date, CancellationToken cancellationToken) =>
         _cachedApiClient.GetHomePricePreviewAsync(stationId, date, cancellationToken);
 
-    internal Task<JsonElement> GetHistoricalHomePricePreviewAsync(long stationId, DateOnly date, CancellationToken cancellationToken) =>
-        _cachedApiClient.GetHistoricalHomePricePreviewAsync(stationId, date, cancellationToken);
+    internal Task<decimal> GetDailyBillTotalAsync(long stationId, DateOnly date, CancellationToken cancellationToken) =>
+        _cachedApiClient.GetDailyBillTotalAsync(stationId, date, cancellationToken);
+
+    internal Task<decimal> GetHistoricalDailyBillTotalAsync(long stationId, DateOnly date, CancellationToken cancellationToken) =>
+        _cachedApiClient.GetHistoricalDailyBillTotalAsync(stationId, date, HistoricalYesterdayCachePeriod, cancellationToken);
 
     public async Task<IReadOnlyList<SigenSystemReference>> GetSystemsAsync(CancellationToken cancellationToken = default)
     {

@@ -167,7 +167,8 @@ namespace SigCompanion
                 { "EnableAnimations", settings.EnableAnimations.ToString() },
                 { "ChartData", settings.ChartData },
                 { "Region", settings.Region ?? string.Empty },
-                { "SavePassword", settings.SavePassword.ToString() }
+                { "SavePassword", settings.SavePassword.ToString() },
+                { "EnergyPrices", settings.ShowEnergyPrices.ToString() },
             };
         }
 

@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
 using SigCompanion.Lib.Sigen;
-using SigCompanion.Lib.Sigen.Models;
 
 namespace SigCompanion.Lib.EnergyPrices;
 
@@ -14,10 +13,9 @@ public sealed class SigenergyEnergyPriceProvider(SigenUiApi api) : IEnergyPriceP
     public string MinorUnitSuffix => _station?.MinorUnitSuffix ?? string.Empty;
 
     public Task<EnergyPriceSnapshot> GetPricesAsync(CancellationToken cancellationToken = default) =>
-        GetPricesAsync(null, DateTime.Now, cancellationToken);
+        GetPricesAsync(DateTime.Now, cancellationToken);
 
-    public async Task<EnergyPriceSnapshot> GetPricesAsync(SigenHistoricalComparisonSnapshot? history,
-        DateTime now, CancellationToken cancellationToken = default)
+    public async Task<EnergyPriceSnapshot> GetPricesAsync(DateTime now, CancellationToken cancellationToken = default)
     {
         var station = await GetStationAsync(cancellationToken).ConfigureAwait(false);
         var today = DateOnly.FromDateTime(now);
@@ -32,29 +30,35 @@ public sealed class SigenergyEnergyPriceProvider(SigenUiApi api) : IEnergyPriceP
                 continue;
             }
 
-            decimal? yesterdayTotal = null;
-            if (history is not null && history.YesterdayDate == today.AddDays(-1) &&
-                history.YesterdayChartData.ValueKind == JsonValueKind.Object)
-            {
-                try
-                {
-                    var yesterday = await api.GetHistoricalHomePricePreviewAsync(station.Id, history.YesterdayDate, cancellationToken)
-                        .ConfigureAwait(false);
-                    yesterdayTotal = GridEnergyCost.CalculateYesterday(history, now, ReadPrices(yesterday));
-                }
-                catch (Exception) when (!cancellationToken.IsCancellationRequested)
-                {
-                    // Yesterday's prices are optional; still return today's data.
-                }
-            }
+            var todayTotal = await TryGetBillCostAsync(station.Id, today, historical: false, cancellationToken)
+                .ConfigureAwait(false);
+            var yesterdayTotal = await TryGetBillCostAsync(station.Id, today.AddDays(-1), historical: true, cancellationToken)
+                .ConfigureAwait(false);
 
             return new EnergyPriceSnapshot(
                 new EnergyTariff(point.BuyPrice * 100m, "General usage", string.Empty, 0),
                 new EnergyTariff(point.SellPrice * 100m, "Feed-in", string.Empty, 0),
-                history is null ? null : GridEnergyCost.CalculateToday(history, now, prices), yesterdayTotal);
+                todayTotal, yesterdayTotal);
         }
 
         throw new InvalidOperationException("Sigenergy returned no price point before the current local time.");
+    }
+
+    private async Task<decimal?> TryGetBillCostAsync(long stationId, DateOnly date, bool historical,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var total = await (historical
+                ? api.GetHistoricalDailyBillTotalAsync(stationId, date, cancellationToken)
+                : api.GetDailyBillTotalAsync(stationId, date, cancellationToken)).ConfigureAwait(false);
+            return -total;
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            // A missing bill should not hide the current tariffs.
+            return null;
+        }
     }
 
     private static (DateTime LocalTime, decimal BuyPrice, decimal SellPrice)[] ReadPrices(JsonElement data) =>
