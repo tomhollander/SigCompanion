@@ -1,15 +1,58 @@
+using SigCompanion.Lib.EnergyPrices;
 using SigCompanion.Lib.Sigen.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SigCompanion.Services
 {
     public static class DemoDataProvider
     {
         public const string Username = "demo";
+
+        public static IEnergyPriceProvider GetEnergyPriceProvider() => new DemoEnergyPriceProvider();
+
+        public static decimal? GetSigenergyDailyCost(SigenHistoricalComparisonSnapshot history, DateTime now) =>
+            GridEnergyCost.CalculateToday(history, now, GetDemoTariffSchedule(now.Date));
+
+        public static decimal? GetSigenergyYesterdayCost(SigenHistoricalComparisonSnapshot history, DateTime now) =>
+            GridEnergyCost.CalculateYesterday(history, now, GetDemoTariffSchedule(now.Date.AddDays(-1)));
+
+        private static (DateTime LocalTime, decimal BuyPrice, decimal SellPrice)[] GetDemoTariffSchedule(DateTime day) =>
+            [
+                (day, 0.25m, 0.09m),
+                (day.AddHours(10), 0.18m, 0.09m),
+                (day.AddHours(16), 0.38m, 0.09m),
+                (day.AddHours(21), 0.25m, 0.09m),
+            ];
+
+        private sealed class DemoEnergyPriceProvider : IEnergyPriceProvider
+        {
+            public CultureInfo CurrencyCulture => CultureInfo.GetCultureInfo("en-AU");
+            public string MinorUnitSuffix => "c";
+
+            public Task<EnergyPriceSnapshot> GetPricesAsync(CancellationToken cancellationToken = default)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var hour = DateTime.Now.Hour;
+                var buyPrice = hour switch
+                {
+                    >= 10 and < 16 => 18m,
+                    >= 16 and < 21 => 38m,
+                    _ => 25m,
+                };
+
+                return Task.FromResult(new EnergyPriceSnapshot(
+                    new EnergyTariff(buyPrice, "General usage", string.Empty, 0),
+                    new EnergyTariff(9m, "Feed-in", string.Empty, 0),
+                    null));
+            }
+        }
 
         public static IReadOnlyList<SigenSystemReference> Systems { get; } =
         [

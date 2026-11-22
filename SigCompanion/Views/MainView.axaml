@@ -22,10 +22,11 @@
                 <!-- 1. Large landscape (1000x800 shared reference, scaled to fit) -->
                 <Viewbox x:Name="LargeLandscapeLayout" IsVisible="False" Margin="12,24,12,12">
                     <Grid Width="1000" Height="800" ColumnDefinitions="*, 2*" ColumnSpacing="24">
-                        <StackPanel Grid.Column="0" VerticalAlignment="Top" HorizontalAlignment="Center" Spacing="28">
-                            <views:GaugePart />
-                            <views:FlowPart />
-                        </StackPanel>
+                        <Grid Grid.Column="0" RowDefinitions="2*,2*,1*" VerticalAlignment="Stretch" HorizontalAlignment="Center" >
+                            <views:GaugePart Grid.Row="0" />
+                            <views:FlowPart Grid.Row="1" />
+                            <views:EnergyPricePart Grid.Row="2" Classes="stacked" IsVisible="{Binding ShowEnergyPrices}" HorizontalAlignment="Stretch" />
+                        </Grid>
 
                         <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="12">
                             <views:EnergyTablePart Grid.Row="0" HorizontalAlignment="Center" />
@@ -34,44 +35,53 @@
                     </Grid>
                 </Viewbox>
 
-                <!-- 2. Large portrait (1000x700 shared reference, scaled to fit) -->
-                <Viewbox x:Name="LargePortraitLayout" IsVisible="False" Margin="12,12,12,12">
-                    <Grid Width="700" Height="1000" RowDefinitions="4*,3*,3*" RowSpacing="16">
-                        <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="8">
-                            <Viewbox Grid.Column="0" Width="300" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <views:GaugePart />
-                            </Viewbox>
-                            <Viewbox Grid.Column="1" Width="300" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <views:FlowPart />
-                            </Viewbox>
+                <!-- 2. Large portrait (700x1000 shared reference, scaled to fit) -->
+                <Grid x:Name="LargePortraitLayout" IsVisible="False" Margin="12" RowDefinitions="*,Auto">
+                    <Viewbox>
+                        <Grid Width="700" Height="1000" RowDefinitions="4*,3*,3*" RowSpacing="16">
+                            <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Viewbox Grid.Column="0" Width="300" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <views:GaugePart />
+                                </Viewbox>
+                                <Viewbox Grid.Column="1" Width="300" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <views:FlowPart />
+                                </Viewbox>
+                            </Grid>
+                            <views:TransposedEnergyTablePart Grid.Row="1" />
+                            <views:ChartPart Grid.Row="2" />
                         </Grid>
-                        <views:TransposedEnergyTablePart Grid.Row="1" />
-                        <views:ChartPart Grid.Row="2" />
-                    </Grid>
-                </Viewbox>
+                    </Viewbox>
+                    <views:EnergyPricePart Grid.Row="1" Margin="0,4,0,0" IsVisible="{Binding ShowEnergyPrices}" />
+                </Grid>
 
-                <!-- 3. Phone landscape (800x480 reference, two swipeable pages) -->
+                <!-- 3. Phone landscape (860x440 reference, two swipeable pages) -->
                 <Viewbox x:Name="PhoneLandscapeLayout" IsVisible="False" Margin="8,12,8,8">
-                    <Grid Width="800" Height="480" Background="Transparent" ClipToBounds="True"
+                    <Grid Width="860" Height="440" Background="Transparent" ClipToBounds="True"
                           PointerPressed="OnPagerPointerPressed"
                           PointerReleased="OnPagerPointerReleased">
-                        <Grid x:Name="LandscapePage1" ColumnDefinitions="*,*">
+                        <Grid x:Name="LandscapePage1" RowDefinitions="*,Auto" ColumnDefinitions="*,*">
                             <Grid.RenderTransform>
                                 <TranslateTransform />
                             </Grid.RenderTransform>
-                            <Viewbox Grid.Column="0" Width="380" Height="440" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Viewbox Grid.Column="0" Width="380" MaxHeight="440" HorizontalAlignment="Center">
                                 <views:GaugePart />
                             </Viewbox>
-                            <Viewbox Grid.Column="1" Width="380" Height="440" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Viewbox Grid.Column="1" Width="380" MaxHeight="440" HorizontalAlignment="Center">
                                 <views:FlowPart />
                             </Viewbox>
+                            <views:EnergyPricePart Grid.Row="1" Grid.ColumnSpan="2" Classes="live-only" Margin="0,4"
+                                                   IsVisible="{Binding ShowEnergyPrices}" />
                         </Grid>
-                        <Grid x:Name="LandscapePage2" RowDefinitions="Auto,*" RowSpacing="8" IsVisible="False">
+                        <Grid x:Name="LandscapePage2" RowDefinitions="*,Auto" IsVisible="False">
                             <Grid.RenderTransform>
                                 <TranslateTransform />
                             </Grid.RenderTransform>
-                            <views:TransposedEnergyTablePart Grid.Row="0" HorizontalAlignment="Center" />
-                            <views:ChartPart Grid.Row="1" />
+                            <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                                <views:TransposedEnergyTablePart HorizontalAlignment="Center" />
+                                <views:ChartPart Grid.Row="1" />
+                            </Grid>
+                            <views:EnergyPricePart Grid.Row="1" Classes="total-only" Margin="0,4"
+                                                   IsVisible="{Binding ShowEnergyPrices}" />
                         </Grid>
                     </Grid>
                 </Viewbox>
@@ -91,13 +101,18 @@
                             <Viewbox Width="420" Height="360">
                                 <views:FlowPart />
                             </Viewbox>
+                            <views:EnergyPricePart Classes="live-only" IsVisible="{Binding ShowEnergyPrices}" />
                         </StackPanel>
-                        <Grid x:Name="PortraitPage2" RowDefinitions="Auto,*" RowSpacing="12" IsVisible="False">
+                        <Grid x:Name="PortraitPage2" RowDefinitions="*,Auto" IsVisible="False">
                             <Grid.RenderTransform>
                                 <TranslateTransform />
                             </Grid.RenderTransform>
-                            <views:EnergyTablePart Grid.Row="0" HorizontalAlignment="Center" />
-                            <views:ChartPart Grid.Row="1" />
+                            <Grid RowDefinitions="Auto,*" RowSpacing="12">
+                                <views:EnergyTablePart HorizontalAlignment="Center" />
+                                <views:ChartPart Grid.Row="1" />
+                            </Grid>
+                            <views:EnergyPricePart Grid.Row="1" Classes="total-only" Margin="0,4"
+                                                   IsVisible="{Binding ShowEnergyPrices}" />
                         </Grid>
                     </Grid>
                 </Viewbox>

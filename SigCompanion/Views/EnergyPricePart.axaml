@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SigCompanion.ViewModels"
+             x:Class="SigCompanion.Views.EnergyPricePart"
+             x:DataType="vm:MainViewModel">
+    <UserControl.Styles>
+        <Style Selector="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.badge">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="StackPanel.live-prices, StackPanel.daily-totals">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Spacing" Value="12" />
+        </Style>
+        <Style Selector=":is(UserControl).stacked StackPanel.live-prices, :is(UserControl).stacked StackPanel.daily-totals">
+            <Setter Property="Orientation" Value="Vertical" />
+            <Setter Property="Spacing" Value="4" />
+        </Style>
+        <Style Selector=":is(UserControl).live-only Viewbox.totals-row">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector=":is(UserControl).total-only StackPanel.live-prices">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="4" VerticalAlignment="Center">
+        <StackPanel Classes="live-prices" HorizontalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center"
+                        ToolTip.Tip="Energy buy price per kWh">
+                <Image Source="/Assets/icon_grid_import.png" Width="24" Height="24" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding BuyEnergyPriceText}" Foreground="#307EDD" FontSize="26" />
+                <Border Classes="badge" Background="{Binding BuyPriceLevelBrush}"
+                        IsVisible="{Binding EnergyPrices.Buy.PriceLevelName, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}">
+                    <TextBlock Text="{Binding EnergyPrices.Buy.PriceLevelName}" Foreground="{Binding BuyPriceLevelTextBrush}" FontSize="14" />
+                </Border>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center"
+                        ToolTip.Tip="Energy sell price per kWh">
+                <Image Source="/Assets/icon_grid_export_yellow.png" Width="24" Height="24" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding SellEnergyPriceText}" Foreground="#CECB65" FontSize="26" />
+                <Border Classes="badge" Background="{Binding SellPriceLevelBrush}"
+                        IsVisible="{Binding EnergyPrices.Sell.PriceLevelName, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}">
+                    <TextBlock Text="{Binding EnergyPrices.Sell.PriceLevelName}" Foreground="{Binding SellPriceLevelTextBrush}" FontSize="14" />
+                </Border>
+            </StackPanel>
+        </StackPanel>
+        <Viewbox Classes="totals-row" StretchDirection="DownOnly">
+            <StackPanel Classes="daily-totals">
+                <TextBlock Foreground="#BEBEBE" FontSize="26" HorizontalAlignment="Center">
+                    <Run Text="Yesterday:&#160;" FontSize="18" FontWeight="Light" /><Run Text="{Binding YesterdayEnergyTotalText}" Foreground="{Binding YesterdayEnergyTotalBrush}" />
+                </TextBlock>
+                <TextBlock Foreground="#BEBEBE" FontSize="26" HorizontalAlignment="Center">
+                    <Run Text="Today:&#160;" FontSize="18" FontWeight="Light" /><Run Text="{Binding TodayEnergyTotalText}" Foreground="{Binding TodayEnergyTotalBrush}" />
+                </TextBlock>
+            </StackPanel>
+        </Viewbox>
+    </StackPanel>
+</UserControl>

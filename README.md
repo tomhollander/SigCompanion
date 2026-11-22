@@ -11,3 +11,13 @@ Store installation links:
 Other information:
  - [FAQs](https://github.com/tomhollander/SigCompanion/wiki/FAQs)
  - [Privacy Policy](https://github.com/tomhollander/SigCompanion/wiki/Privacy-Policy)
+
+## Running tests
+
+With the .NET 10 SDK, run the library tests from the repository root:
+
+```sh
+dotnet test SigCompanion.Lib.Tests/SigCompanion.Lib.Tests.csproj
+```
+
+The energy pricing tests use mocked HTTP responses and do not require API credentials or mobile workloads.

@@ -39,6 +39,22 @@
                             </StackPanel>
                         </StackPanel>
                         <TextBlock Text="Features" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
+                        <ToggleSwitch Content="Show energy prices" Foreground="#FFFFFF" IsChecked="{Binding ShowEnergyPrices, Mode=TwoWay}" />
+                        <StackPanel Spacing="6" IsVisible="{Binding ShowEnergyPrices}">
+                            <StackPanel Spacing="6" Margin="15,0,0,0">
+                                <TextBlock Text="Buy price thresholds" Foreground="#FFFFFF" FontWeight="SemiBold" />
+                                <TextBlock Text="Low if below" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding SigenergyBuyLowBelow, Mode=TwoWay}" Minimum="0" Maximum="{Binding SigenergyBuyVeryHighAt}" Increment="1" FormatString="0" ClipValueToMinMax="True" />
+                                <TextBlock Text="Very high from" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding SigenergyBuyVeryHighAt, Mode=TwoWay}" Minimum="{Binding SigenergyBuyLowBelow}" Maximum="2147483647" Increment="1" FormatString="0" ClipValueToMinMax="True" />
+                                <TextBlock Text="Sell price thresholds" Foreground="#FFFFFF" FontWeight="SemiBold" />
+                                <TextBlock Text="Low if below" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding SigenergySellLowBelow, Mode=TwoWay}" Minimum="0" Maximum="{Binding SigenergySellVeryHighAt}" Increment="1" FormatString="0" ClipValueToMinMax="True" />
+                                <TextBlock Text="Very high from" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding SigenergySellVeryHighAt, Mode=TwoWay}" Minimum="{Binding SigenergySellLowBelow}" Maximum="2147483647" Increment="1" FormatString="0" ClipValueToMinMax="True" />
+                                <TextBlock Text="Enter minor currency units per kWh (for example, cents or pence)." Foreground="#BEBEBE" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
                         <ToggleSwitch Content="Show clock" Foreground="#FFFFFF" IsChecked="{Binding ShowClock, Mode=TwoWay}" />
                         <ToggleSwitch Content="Cycle pages when idle" Foreground="#FFFFFF" IsChecked="{Binding CyclePagesWhenIdle, Mode=TwoWay}" />
                         <ToggleSwitch Content="Enable animations" Foreground="#FFFFFF" IsChecked="{Binding EnableAnimations, Mode=TwoWay}" />

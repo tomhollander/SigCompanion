@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -5,6 +6,7 @@ using LiveChartsCore;
 using LiveChartsCore.Defaults;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
+using SigCompanion.Lib.EnergyPrices;
 using SigCompanion.Lib.Sigen;
 using SigCompanion.Lib.Sigen.Modbus;
 using SigCompanion.Lib.Sigen.Models;
@@ -73,7 +75,7 @@ namespace SigCompanion.ViewModels
 
             signInCommand = new AsyncRelayCommand(SignInAsync);
             openSettingsCommand = new RelayCommand(OpenSettings);
-            backToMainCommand = new RelayCommand(BackToMain);
+            backToMainCommand = new AsyncRelayCommand(BackToMainAsync);
             signOutCommand = new AsyncRelayCommand(SignOutAsync);
 
             _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -302,6 +304,213 @@ namespace SigCompanion.ViewModels
             }
         }
 
+        private bool showEnergyPrices;
+        public bool ShowEnergyPrices
+        {
+            get => showEnergyPrices;
+            set
+            {
+                if (SetProperty(ref showEnergyPrices, value))
+                {
+                    _settings.ShowEnergyPrices = value;
+                    _settingsStore.Save(_settings);
+                }
+            }
+        }
+
+        public int SigenergyBuyLowBelow
+        {
+            get => _settings.SigenergyBuyThresholds.LowBelow;
+            set => SetSigenergyThresholds(isBuy: true, _settings.SigenergyBuyThresholds with { LowBelow = value });
+        }
+
+        public int SigenergyBuyVeryHighAt
+        {
+            get => _settings.SigenergyBuyThresholds.VeryHighAt;
+            set => SetSigenergyThresholds(isBuy: true, _settings.SigenergyBuyThresholds with { VeryHighAt = value });
+        }
+
+        public int SigenergySellLowBelow
+        {
+            get => _settings.SigenergySellThresholds.LowBelow;
+            set => SetSigenergyThresholds(isBuy: false, _settings.SigenergySellThresholds with { LowBelow = value });
+        }
+
+        public int SigenergySellVeryHighAt
+        {
+            get => _settings.SigenergySellThresholds.VeryHighAt;
+            set => SetSigenergyThresholds(isBuy: false, _settings.SigenergySellThresholds with { VeryHighAt = value });
+        }
+
+        private void SetSigenergyThresholds(bool isBuy, SigenergyPriceThresholds thresholds)
+        {
+            if (thresholds.LowBelow < 0 || thresholds.VeryHighAt < thresholds.LowBelow)
+            {
+                return;
+            }
+
+            var previous = isBuy ? _settings.SigenergyBuyThresholds : _settings.SigenergySellThresholds;
+            if (thresholds == previous)
+            {
+                return;
+            }
+
+            if (isBuy)
+            {
+                _settings.SigenergyBuyThresholds = thresholds;
+                OnPropertyChanged(nameof(SigenergyBuyLowBelow));
+                OnPropertyChanged(nameof(SigenergyBuyVeryHighAt));
+            }
+            else
+            {
+                _settings.SigenergySellThresholds = thresholds;
+                OnPropertyChanged(nameof(SigenergySellLowBelow));
+                OnPropertyChanged(nameof(SigenergySellVeryHighAt));
+            }
+
+            _settingsStore.Save(_settings);
+            if (EnergyPrices is { } prices)
+            {
+                EnergyPrices = LabelSigenergyPrices(prices);
+            }
+        }
+
+        private EnergyPriceSnapshot LabelSigenergyPrices(EnergyPriceSnapshot prices) => prices with
+        {
+            Buy = _settings.SigenergyBuyThresholds.Label(prices.Buy),
+            Sell = _settings.SigenergySellThresholds.Label(prices.Sell),
+        };
+
+        private IEnergyPriceProvider? _configuredEnergyPriceProvider;
+        private IEnergyPriceProvider? _sigenergyPriceProvider;
+        private SigenHistoricalComparisonSnapshot? _latestDashboardHistory;
+
+        private EnergyPriceSnapshot? energyPrices;
+        public EnergyPriceSnapshot? EnergyPrices
+        {
+            get => energyPrices;
+            private set
+            {
+                if (SetProperty(ref energyPrices, value))
+                {
+                    OnPropertyChanged(nameof(BuyPriceLevelBrush));
+                    OnPropertyChanged(nameof(SellPriceLevelBrush));
+                    OnPropertyChanged(nameof(BuyPriceLevelTextBrush));
+                    OnPropertyChanged(nameof(SellPriceLevelTextBrush));
+                    OnPropertyChanged(nameof(BuyEnergyPriceText));
+                    OnPropertyChanged(nameof(SellEnergyPriceText));
+                    OnPropertyChanged(nameof(TodayEnergyTotalText));
+                    OnPropertyChanged(nameof(TodayEnergyTotalBrush));
+                    OnPropertyChanged(nameof(YesterdayEnergyTotalText));
+                    OnPropertyChanged(nameof(YesterdayEnergyTotalBrush));
+                }
+            }
+        }
+
+        public IBrush BuyPriceLevelBrush => GetPriceLevelBrush(EnergyPrices?.Buy.PriceLevel);
+        public IBrush SellPriceLevelBrush => GetPriceLevelBrush(EnergyPrices?.Sell.PriceLevel);
+        public IBrush BuyPriceLevelTextBrush => EnergyPrices?.Buy.PriceLevel == 7 ? Brushes.White : Brushes.Black;
+        public IBrush SellPriceLevelTextBrush => EnergyPrices?.Sell.PriceLevel == 7 ? Brushes.White : Brushes.Black;
+        public string BuyEnergyPriceText => FormatEnergyRate(EnergyPrices?.Buy.CentsPerKwh);
+        public string SellEnergyPriceText => FormatEnergyRate(EnergyPrices?.Sell.CentsPerKwh);
+        public string TodayEnergyTotalText => FormatEnergyTotal(EnergyPrices?.TodayTotalDollars);
+        public string YesterdayEnergyTotalText => FormatEnergyTotal(EnergyPrices?.YesterdayTotalDollars);
+
+        private static readonly IBrush DefaultEnergyTotalBrush = new SolidColorBrush(Color.Parse("#BEBEBE"));
+        public IBrush TodayEnergyTotalBrush => GetEnergyTotalBrush(EnergyPrices?.TodayTotalDollars);
+        public IBrush YesterdayEnergyTotalBrush => GetEnergyTotalBrush(EnergyPrices?.YesterdayTotalDollars);
+
+        private string FormatEnergyTotal(decimal? amount) =>
+            amount is decimal total && _configuredEnergyPriceProvider is { } provider
+                ? total.ToString("C", provider.CurrencyCulture)
+                : "—";
+
+        private static IBrush GetEnergyTotalBrush(decimal? amount) =>
+            amount is < 0m ? PowerColors.BatteryBrush : DefaultEnergyTotalBrush;
+
+        private string FormatEnergyRate(decimal? rate)
+        {
+            if (rate is not decimal amount || _configuredEnergyPriceProvider is not { } provider)
+            {
+                return string.Empty;
+            }
+
+            var suffix = provider.MinorUnitSuffix;
+            if (suffix.Length == 0)
+            {
+                return (amount / 100m).ToString("C", provider.CurrencyCulture);
+            }
+
+            var rounded = decimal.Round(amount, 0, MidpointRounding.AwayFromZero);
+            return rounded.ToString("0", provider.CurrencyCulture) + suffix;
+        }
+
+        private static IBrush GetPriceLevelBrush(int? level) => level switch
+        {
+            1 => Brushes.Magenta,
+            2 => Brushes.DodgerBlue,
+            3 => Brushes.LimeGreen,
+            4 => Brushes.Khaki,
+            5 => Brushes.DarkOrange,
+            6 => Brushes.IndianRed,
+            7 => Brushes.DarkRed,
+            0 => Brushes.Gray,
+            _ => Brushes.Transparent,
+        };
+
+        private void ResetEnergyPriceProvider()
+        {
+            _configuredEnergyPriceProvider = null;
+            EnergyPrices = null;
+        }
+
+        private async Task RefreshEnergyPricesAsync(CancellationToken cancellationToken = default)
+        {
+            if (!ShowEnergyPrices)
+            {
+                EnergyPrices = null;
+                return;
+            }
+
+            try
+            {
+                var provider = _configuredEnergyPriceProvider ??= _isDemoMode
+                    ? DemoDataProvider.GetEnergyPriceProvider()
+                    : (_sigenergyPriceProvider ??= EnergyPriceProviderFactory.Create(EnergyPriceProviderFactory.Sigenergy, _sigenUiApi));
+                var prices = provider is SigenergyEnergyPriceProvider sigenergy
+                    ? await sigenergy.GetPricesAsync(_latestDashboardHistory, GetSigenergyLocalTime(), cancellationToken)
+                    : await provider.GetPricesAsync(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (ShowEnergyPrices && ReferenceEquals(_configuredEnergyPriceProvider, provider))
+                {
+                    if (_isDemoMode && _latestDashboardHistory is { } history)
+                    {
+                        var now = DateTime.Now;
+                        prices = prices with
+                        {
+                            TodayTotalDollars = DemoDataProvider.GetSigenergyDailyCost(history, now),
+                            YesterdayTotalDollars = DemoDataProvider.GetSigenergyYesterdayCost(history, now),
+                        };
+                    }
+
+                    EnergyPrices = LabelSigenergyPrices(prices);
+                }
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                Debug.WriteLine($"Energy price refresh failed ({ex.GetType().Name}).");
+            }
+        }
+
+        private DateTime GetSigenergyLocalTime()
+        {
+            var now = DateTime.UtcNow;
+            return SelectedSystem?.TimeZone is { Length: > 0 } zoneId &&
+                TimeZoneInfo.TryFindSystemTimeZoneById(zoneId, out var zone)
+                ? TimeZoneInfo.ConvertTimeFromUtc(now, zone)
+                : now;
+        }
+
         public string[] ChartDataOptions { get; } = ["Power", "Battery SoC", "Both"];
 
         private string chartData = "Power";
@@ -406,6 +615,7 @@ namespace SigCompanion.ViewModels
             ShowClock = _settings.ShowClock;
             CyclePagesWhenIdle = _settings.CyclePagesWhenIdle;
             EnableAnimations = _settings.EnableAnimations;
+            ShowEnergyPrices = _settings.ShowEnergyPrices;
             ChartData = _settings.ChartData;
             UseModbus = _settings.UseModbus;
             ModbusHost = _settings.ModbusHost;
@@ -446,7 +656,12 @@ namespace SigCompanion.ViewModels
             }
 
             IsBusy = true;
-            _isDemoMode = string.Equals(Username, DemoDataProvider.Username, StringComparison.OrdinalIgnoreCase);
+            var isDemoMode = string.Equals(Username, DemoDataProvider.Username, StringComparison.OrdinalIgnoreCase);
+            if (_isDemoMode != isDemoMode)
+            {
+                _isDemoMode = isDemoMode;
+                ResetEnergyPriceProvider();
+            }
 
             try
             {
@@ -527,14 +742,18 @@ namespace SigCompanion.ViewModels
             CurrentPage = AppPage.Settings;
         }
 
-        private void BackToMain()
+        private async Task BackToMainAsync()
         {
             if (!_isAuthenticated)
             {
                 return;
             }
 
-            CurrentPage = AppPage.Main;
+            await RefreshEnergyPricesAsync();
+            if (_isAuthenticated)
+            {
+                CurrentPage = AppPage.Main;
+            }
         }
 
         private Task SignOutAsync()
@@ -548,6 +767,9 @@ namespace SigCompanion.ViewModels
                 ShowClock = _settings.ShowClock,
                 CyclePagesWhenIdle = _settings.CyclePagesWhenIdle,
                 EnableAnimations = _settings.EnableAnimations,
+                ShowEnergyPrices = _settings.ShowEnergyPrices,
+                SigenergyBuyThresholds = _settings.SigenergyBuyThresholds,
+                SigenergySellThresholds = _settings.SigenergySellThresholds,
                 ChartData = _settings.ChartData,
                 UseModbus = _settings.UseModbus,
                 ModbusHost = _settings.ModbusHost,
@@ -558,6 +780,8 @@ namespace SigCompanion.ViewModels
             Username = string.Empty;
             Password = string.Empty;
             SavePassword = false;
+            _sigenergyPriceProvider = null;
+            ResetEnergyPriceProvider();
             SelectedRegion = SigenRegions.Default;
             SelectedSystem = null;
             Systems.Clear();
@@ -601,6 +825,9 @@ namespace SigCompanion.ViewModels
 
         partial void OnSelectedSystemChanged(SigenSystemReference? value)
         {
+            _latestDashboardHistory = null;
+            EnergyPrices = null;
+
             if (!_isAuthenticated || value is null)
             {
                 StopPolling();
@@ -730,7 +957,7 @@ namespace SigCompanion.ViewModels
 
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(120), cancellationToken);
+                    await Task.Delay(TimeSpan.FromMinutes(2), cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -881,6 +1108,8 @@ namespace SigCompanion.ViewModels
             }
 
             var historical = await historicalTask;
+            cancellationToken.ThrowIfCancellationRequested();
+            _latestDashboardHistory = historical;
 
             HistoricalStationCards.Clear();
             foreach (var row in historical.StationCards)
@@ -893,6 +1122,7 @@ namespace SigCompanion.ViewModels
             TodayChartDataJson = JsonSerializer.Serialize(historical.TodayChartData, new JsonSerializerOptions { WriteIndented = false });
             YesterdayChartDataJson = JsonSerializer.Serialize(historical.YesterdayChartData, new JsonSerializerOptions { WriteIndented = false });
             UpdateHistoricalPowerChart(historical.YesterdayChartData, historical.TodayChartData, historical.YesterdayStateOfCharge, historical.TodayStateOfCharge);
+            await RefreshEnergyPricesAsync(cancellationToken);
         }
 
         private void UpdateHistoricalPowerChart(
