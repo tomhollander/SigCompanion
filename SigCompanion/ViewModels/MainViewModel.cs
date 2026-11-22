@@ -1019,6 +1019,7 @@ namespace SigCompanion.ViewModels
             var gridPower = plant.GridSensorActivePower;
             var pvPower = plant.PhotovoltaicPower + plant.ThirdPartyInverterActivePower;
             var loadPower = plant.TotalLoadPower;
+            var evPower = (plant.AcEvChargingPower ?? 0m) + (plant.DcEvChargingPower ?? 0m);
             var essPower =  // Don't use plant.EssPower as the numbers don't add up. The Sig app seems to infer this from the other flows.
                 pvPower + gridPower - loadPower;
 
@@ -1031,11 +1032,15 @@ namespace SigCompanion.ViewModels
             GridPower = FormatPower(-gridPower);
             BatteryPower = FormatPower(-essPower);
             LoadPower = FormatPower(loadPower);
+            EvPower = plant.DcEvChargingPower is { } dcPower ? FormatPower(dcPower) : "-";
+            AcPower = plant.AcEvChargingPower is { } acPower ? FormatPower(acPower) : "-";
 
             FlowSolarText = FormatFlowValue(pvPower);
             FlowGridText = FormatFlowValue(gridPower);
             FlowHomeText = FormatFlowValue(loadPower);
             FlowBatteryText = FormatFlowValue(Math.Abs(essPower));
+            FlowEvText = FormatFlowValue(evPower);
+            EvIconVisible = evPower > 0;
 
             PowerFlows = new PowerFlowAllocation
             {

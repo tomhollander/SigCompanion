@@ -30,16 +30,21 @@
                         </ToggleSwitch>
                         <StackPanel Spacing="10" IsVisible="{Binding UseModbus}">
                             <StackPanel Spacing="6">
-                                <TextBlock Text="Host" Foreground="#BEBEBE" />
-                                <TextBox Text="{Binding ModbusHost, Mode=TwoWay}" MinWidth="260" />
+                                <TextBlock Text="Host" Margin="15,0,0,0" Foreground="#BEBEBE" />
+                                <TextBox Text="{Binding ModbusHost, Mode=TwoWay}" Margin="15,0,0,0" MinWidth="260" />
                             </StackPanel>
                             <StackPanel Spacing="6">
-                                <TextBlock Text="Port" Foreground="#BEBEBE" />
-                                <NumericUpDown Value="{Binding ModbusPort, Mode=TwoWay}" Minimum="1" Maximum="65535" Increment="1" FormatString="0" MinWidth="260" />
+                                <TextBlock Text="Port" Margin="15,0,0,0" Foreground="#BEBEBE" />
+                                <NumericUpDown Value="{Binding ModbusPort, Mode=TwoWay}" Margin="15,0,0,0" Minimum="1" Maximum="65535" Increment="1" FormatString="0" MinWidth="260" />
                             </StackPanel>
                         </StackPanel>
                         <TextBlock Text="Features" Foreground="#FFFFFF" FontSize="20" FontWeight="SemiBold" />
-                        <ToggleSwitch Content="Show energy prices" Foreground="#FFFFFF" IsChecked="{Binding ShowEnergyPrices, Mode=TwoWay}" />
+                        <ToggleSwitch Foreground="#FFFFFF" IsChecked="{Binding ShowEnergyPrices, Mode=TwoWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Foreground="#FFFFFF">Show energy prices</TextBlock>
+                                <HyperlinkButton Padding="0" BorderThickness="0" NavigateUri="https://github.com/tomhollander/SigCompanion/wiki/Energy-Pricing"><Border Width="20" Height="20" CornerRadius="10" BorderBrush="#BEBEBE" BorderThickness="1"><TextBlock Text="i" Foreground="#BEBEBE" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></HyperlinkButton>
+                            </StackPanel>
+                        </ToggleSwitch>
                         <StackPanel Spacing="6" IsVisible="{Binding ShowEnergyPrices}">
                             <StackPanel Spacing="6" Margin="15,0,0,0">
                                 <TextBlock Text="Buy price thresholds" Foreground="#FFFFFF" FontWeight="SemiBold" />
