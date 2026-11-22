@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using Avalonia.Controls;
+using Avalonia.Threading;
+using LiveChartsCore.Kernel.Sketches;
 using SigCompanion.ViewModels;
 
 namespace SigCompanion.Views
@@ -12,6 +14,18 @@ namespace SigCompanion.Views
         {
             InitializeComponent();
             DataContextChanged += OnChartDataContextChanged;
+        }
+
+        public void RefreshHistoricalChart()
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (IsEffectivelyVisible && _subscribedViewModel is { } vm)
+                {
+                    SyncHistoricalChart(vm);
+                    ((IChartView)HistoricalPowerChart).CoreChart?.Update();
+                }
+            }, DispatcherPriority.Loaded);
         }
 
         private void OnChartDataContextChanged(object? sender, System.EventArgs e)
