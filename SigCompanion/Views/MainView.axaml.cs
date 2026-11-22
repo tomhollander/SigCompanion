@@ -123,6 +123,10 @@ namespace SigCompanion.Views
 
             bool isLandscape = width >= height;
             bool isPhone = isLandscape ? (height < PhoneWidthThreshold) : (width < PhoneWidthThreshold);
+            bool layoutChanged = LargeLandscapeLayout.IsVisible != (!isPhone && isLandscape) ||
+                                 LargePortraitLayout.IsVisible != (!isPhone && !isLandscape) ||
+                                 PhoneLandscapeLayout.IsVisible != (isPhone && isLandscape) ||
+                                 PhonePortraitLayout.IsVisible != (isPhone && !isLandscape);
 
             LargeLandscapeLayout.IsVisible = !isPhone && isLandscape;
             LargePortraitLayout.IsVisible = !isPhone && !isLandscape;
@@ -130,7 +134,34 @@ namespace SigCompanion.Views
             PhonePortraitLayout.IsVisible = isPhone && !isLandscape;
 
             ShowPhonePage(_phonePage);
+            if (layoutChanged)
+            {
+                RefreshActiveChart();
+            }
             ResetIdleTimer();
+        }
+
+        private void RefreshActiveChart()
+        {
+            if (LargeLandscapeLayout.IsVisible)
+            {
+                LargeLandscapeChart.RefreshHistoricalChart();
+            }
+            else if (LargePortraitLayout.IsVisible)
+            {
+                LargePortraitChart.RefreshHistoricalChart();
+            }
+            else if (_phonePage == 1)
+            {
+                if (PhoneLandscapeLayout.IsVisible)
+                {
+                    PhoneLandscapeChart.RefreshHistoricalChart();
+                }
+                else if (PhonePortraitLayout.IsVisible)
+                {
+                    PhonePortraitChart.RefreshHistoricalChart();
+                }
+            }
         }
 
         private void ShowPhonePage(int page)
@@ -229,6 +260,11 @@ namespace SigCompanion.Views
                 incoming.IsVisible = true;
                 outgoingTransform.X = 0;
                 incomingTransform.X = -shift;
+
+                if (page == 1)
+                {
+                    RefreshActiveChart();
+                }
 
                 await AnimateSlideAsync(outgoingTransform, incomingTransform, shift);
 
