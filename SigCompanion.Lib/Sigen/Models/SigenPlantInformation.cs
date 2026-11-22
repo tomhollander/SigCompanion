@@ -45,4 +45,6 @@ public sealed class SigenPlantInformation
     public decimal RatedEssDischargingPower { get; init; }
     public decimal TotalLoadPower { get; init; }
     public decimal ThirdPartyInverterActivePower { get; init; }
+    public decimal? AcEvChargingPower { get; init; }
+    public decimal? DcEvChargingPower { get; init; }
 }

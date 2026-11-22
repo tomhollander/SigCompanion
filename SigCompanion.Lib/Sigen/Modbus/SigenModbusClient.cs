@@ -8,10 +8,13 @@ namespace SigCompanion.Lib.Sigen.Modbus;
 public sealed class SigenModbusClient : IDisposable
 {
     private const byte ReadHoldingRegistersFunction = 0x03;
+    private const byte ReadInputRegistersFunction = 0x04;
     private const ushort PlantInfoStartAddress = 30000;
     private const ushort PlantInfoRegisterCount = 72;
     private const ushort TotalLoadPowerAddress = 30284;
     private const ushort ThirdPartyInverterActivePowerAddress = 30194;
+    private const ushort DcEvChargingPowerAddress = 31502;
+    private const ushort AcEvChargingPowerAddress = 32003;
     private const int MbapHeaderLength = 6;
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(20);
 
@@ -21,6 +24,8 @@ public sealed class SigenModbusClient : IDisposable
     private TcpClient? _tcpClient;
     private NetworkStream? _stream;
     private ushort _transactionId;
+    private bool _acEvChargingAvailable = true;
+    private bool _dcEvChargingAvailable = true;
 
     public SigenModbusClient(string host, int port, byte slaveAddress)
     {
@@ -73,6 +78,14 @@ public sealed class SigenModbusClient : IDisposable
         var registers = await ReadInputRegistersAsync(PlantInfoStartAddress, PlantInfoRegisterCount, cancellationToken);
         var totalLoadRegisters = await ReadInputRegistersAsync(TotalLoadPowerAddress, 2, cancellationToken);
         var thirdPartyInverterRegisters = await ReadInputRegistersAsync(ThirdPartyInverterActivePowerAddress, 2, cancellationToken);
+        var dcEvChargingPower = _dcEvChargingAvailable
+            ? await ReadOptionalEvChargingPowerAsync(DcEvChargingPowerAddress, cancellationToken)
+            : null;
+        _dcEvChargingAvailable = dcEvChargingPower.HasValue;
+        var acEvChargingPower = _acEvChargingAvailable
+            ? await ReadOptionalEvChargingPowerAsync(AcEvChargingPowerAddress, cancellationToken)
+            : null;
+        _acEvChargingAvailable = acEvChargingPower.HasValue;
 
         return new SigenPlantInformation
         {
@@ -118,17 +131,32 @@ public sealed class SigenModbusClient : IDisposable
             RatedEssChargingPower = ReadU32Scaled(registers, 30068, 1000),
             RatedEssDischargingPower = ReadU32Scaled(registers, 30070, 1000),
             TotalLoadPower = (decimal)BinaryPrimitives.ReadInt32BigEndian(totalLoadRegisters) / 1000,
-            ThirdPartyInverterActivePower = (decimal)BinaryPrimitives.ReadInt32BigEndian(thirdPartyInverterRegisters) / 1000
+            ThirdPartyInverterActivePower = (decimal)BinaryPrimitives.ReadInt32BigEndian(thirdPartyInverterRegisters) / 1000,
+            AcEvChargingPower = acEvChargingPower,
+            DcEvChargingPower = dcEvChargingPower
         };
     }
 
-    private async Task<byte[]> ReadInputRegistersAsync(ushort startAddress, ushort count, CancellationToken cancellationToken)
+    private async Task<decimal?> ReadOptionalEvChargingPowerAsync(ushort address, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var registers = await ReadInputRegistersAsync(address, 2, cancellationToken, ReadInputRegistersFunction);
+            return (decimal)BinaryPrimitives.ReadInt32BigEndian(registers) / 1000;
+        }
+        catch (Exception ex) when (ex is IOException or SocketException or TimeoutException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Dispose();
+            return null;
+        }
+    }
+
+    private async Task<byte[]> ReadInputRegistersAsync(ushort startAddress, ushort count, CancellationToken cancellationToken, byte function = ReadHoldingRegistersFunction)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(RequestTimeout);
         var token = timeoutCts.Token;
-
-        await EnsureConnectedAsync(token);
 
         var request = new byte[12];
         _transactionId++;
@@ -136,12 +164,13 @@ public sealed class SigenModbusClient : IDisposable
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(2), 0);
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(4), 6);
         request[6] = _slaveAddress;
-        request[7] = ReadHoldingRegistersFunction;
+        request[7] = function;
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(8), startAddress);
         BinaryPrimitives.WriteUInt16BigEndian(request.AsSpan(10), count);
 
         try
         {
+            await EnsureConnectedAsync(token);
             await _stream!.WriteAsync(request, token);
 
             var header = new byte[MbapHeaderLength];
@@ -167,7 +196,7 @@ public sealed class SigenModbusClient : IDisposable
             }
 
             var body = payload.AsSpan(1).ToArray();
-            return ParseResponse(body, startAddress, count);
+            return ParseResponse(body, startAddress, count, function);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -181,15 +210,20 @@ public sealed class SigenModbusClient : IDisposable
         }
     }
 
-    private static byte[] ParseResponse(byte[] body, ushort startAddress, ushort count)
+    private static byte[] ParseResponse(byte[] body, ushort startAddress, ushort count, byte function)
     {
-        if (body[0] == (ReadHoldingRegistersFunction | 0x80))
+        if (body.Length < 2)
+        {
+            throw new IOException("Invalid Modbus response length.");
+        }
+
+        if (body[0] == (function | 0x80))
         {
             throw new IOException($"Modbus exception code {body[1]} reading registers starting at {startAddress}.");
         }
 
         var byteCount = body[1];
-        if (body[0] != ReadHoldingRegistersFunction || byteCount != count * 2)
+        if (body[0] != function || byteCount != count * 2 || body.Length != byteCount + 2)
         {
             throw new IOException("Unexpected Modbus response.");
         }
