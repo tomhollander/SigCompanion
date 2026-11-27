@@ -60,6 +60,9 @@
                                 <TextBlock Text="Enter minor currency units per kWh (for example, cents or pence)." Foreground="#BEBEBE" TextWrapping="Wrap" />
                             </StackPanel>
                         </StackPanel>
+                        <ToggleSwitch Foreground="#FFFFFF" IsChecked="{Binding PlayBatterySounds, Mode=TwoWay}">
+                            <TextBlock Text="Play sounds when battery empty or full" TextWrapping="Wrap" />
+                        </ToggleSwitch>
                         <ToggleSwitch Content="Show clock" Foreground="#FFFFFF" IsChecked="{Binding ShowClock, Mode=TwoWay}" />
                         <ToggleSwitch Content="Cycle pages when idle" Foreground="#FFFFFF" IsChecked="{Binding CyclePagesWhenIdle, Mode=TwoWay}" />
                         <ToggleSwitch Content="Enable animations" Foreground="#FFFFFF" IsChecked="{Binding EnableAnimations, Mode=TwoWay}" />

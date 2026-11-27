@@ -2,15 +2,18 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using SigCompanion.Lib.Sigen;
 using SigCompanion.ViewModels;
 using SigCompanion.Views;
 using System;
+using System.Threading.Tasks;
 
 namespace SigCompanion
 {
     public partial class App : Application
     {
         public static MainViewModel? MainViewModel { get; private set; }
+        public static Func<BatteryChargeAlert, Task>? PlayBatteryAlertAsync { get; set; }
 
         public override void Initialize()
         {
@@ -35,14 +38,14 @@ namespace SigCompanion
             {
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainViewModel()
+                    DataContext = new MainViewModel(PlayBatteryAlertAsync)
                 };
             }
             else if (ApplicationLifetime is IActivityApplicationLifetime singleViewFactoryApplicationLifetime)
             {
                 singleViewFactoryApplicationLifetime.MainViewFactory = () =>
                 {
-                    MainViewModel = new MainViewModel();
+                    MainViewModel = new MainViewModel(PlayBatteryAlertAsync);
                     return new MainView { DataContext = MainViewModel };
                 };
             }
@@ -50,7 +53,7 @@ namespace SigCompanion
             {
                 singleViewPlatform.MainView = new MainView
                 {
-                    DataContext = new MainViewModel()
+                    DataContext = new MainViewModel(PlayBatteryAlertAsync)
                 };
             }
 

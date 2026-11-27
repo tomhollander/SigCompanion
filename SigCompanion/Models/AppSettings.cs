@@ -15,6 +15,7 @@ public sealed class AppSettings
     public bool ShowClock { get; set; }
     public bool CyclePagesWhenIdle { get; set; }
     public bool EnableAnimations { get; set; } = true;
+    public bool PlayBatterySounds { get; set; } = true;
     public bool ShowEnergyPrices { get; set; }
     public SigenergyPriceThresholds SigenergyBuyThresholds { get; set; } = SigenergyPriceThresholds.DefaultBuy;
     public SigenergyPriceThresholds SigenergySellThresholds { get; set; } = SigenergyPriceThresholds.DefaultSell;

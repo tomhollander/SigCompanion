@@ -2,7 +2,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.iOS;
 using Avalonia.Media;
+using AVFoundation;
 using Foundation;
+using SigCompanion.Lib.Sigen;
+using SigCompanion.Services;
+using System;
+using System.Threading.Tasks;
 using UIKit;
 
 namespace SigCompanion.iOS
@@ -17,8 +22,35 @@ namespace SigCompanion.iOS
     {
         protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
         {
+            App.PlayBatteryAlertAsync = PlayBatteryAlertAsync;
             return base.CustomizeAppBuilder(builder)
                 .WithInterFont();
+        }
+
+        private static async Task PlayBatteryAlertAsync(BatteryChargeAlert alert)
+        {
+            using var data = NSData.FromArray(await BatterySoundAssets.ReadAsync(alert));
+            using var player = AVAudioPlayer.FromData(data, out var error)
+                ?? throw new InvalidOperationException(error?.LocalizedDescription ?? "Could not load the battery sound.");
+            var playback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            player.FinishedPlaying += (_, e) =>
+            {
+                if (e.Status)
+                {
+                    playback.TrySetResult();
+                }
+                else
+                {
+                    playback.TrySetException(new InvalidOperationException("Could not finish playing the battery sound."));
+                }
+            };
+            player.DecoderError += (_, e) => playback.TrySetException(new InvalidOperationException(e.Error.LocalizedDescription));
+            if (!player.Play())
+            {
+                throw new InvalidOperationException("Could not play the battery sound.");
+            }
+
+            await playback.Task;
         }
     }
 }

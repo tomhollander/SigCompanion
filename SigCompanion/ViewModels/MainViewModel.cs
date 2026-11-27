@@ -35,6 +35,8 @@ namespace SigCompanion.ViewModels
         private static readonly TimeSpan BackupSocRetryDelay = TimeSpan.FromMinutes(1);
         private readonly SigenUiApi _sigenUiApi;
         private readonly AppSettingsStore _settingsStore;
+        private readonly Func<BatteryChargeAlert, Task>? _playBatteryAlert;
+        private BatteryChargeAlerts _batteryChargeAlerts = new();
         private AppSettings _settings;
         private CancellationTokenSource? _pollingCts;
         private CancellationTokenSource? _modbusCts;
@@ -45,8 +47,9 @@ namespace SigCompanion.ViewModels
         private bool _isDeactivated;
         private readonly DispatcherTimer _clockTimer;
 
-        public MainViewModel()
+        public MainViewModel(Func<BatteryChargeAlert, Task>? playBatteryAlert = null)
         {
+            _playBatteryAlert = playBatteryAlert;
             var httpClient = new HttpClient();
             var apiClient = new SigenApiClient(httpClient);
             var cachedApiClient = new SigenCachedApiClient(apiClient);
@@ -306,6 +309,20 @@ namespace SigCompanion.ViewModels
                 if (SetProperty(ref enableAnimations, value))
                 {
                     _settings.EnableAnimations = value;
+                    _settingsStore.Save(_settings);
+                }
+            }
+        }
+
+        private bool playBatterySounds = true;
+        public bool PlayBatterySounds
+        {
+            get => playBatterySounds;
+            set
+            {
+                if (SetProperty(ref playBatterySounds, value))
+                {
+                    _settings.PlayBatterySounds = value;
                     _settingsStore.Save(_settings);
                 }
             }
@@ -622,6 +639,7 @@ namespace SigCompanion.ViewModels
             ShowClock = _settings.ShowClock;
             CyclePagesWhenIdle = _settings.CyclePagesWhenIdle;
             EnableAnimations = _settings.EnableAnimations;
+            PlayBatterySounds = _settings.PlayBatterySounds;
             ShowEnergyPrices = _settings.ShowEnergyPrices;
             ChartData = _settings.ChartData;
             UseModbus = _settings.UseModbus;
@@ -774,6 +792,7 @@ namespace SigCompanion.ViewModels
                 ShowClock = _settings.ShowClock,
                 CyclePagesWhenIdle = _settings.CyclePagesWhenIdle,
                 EnableAnimations = _settings.EnableAnimations,
+                PlayBatterySounds = _settings.PlayBatterySounds,
                 ShowEnergyPrices = _settings.ShowEnergyPrices,
                 SigenergyBuyThresholds = _settings.SigenergyBuyThresholds,
                 SigenergySellThresholds = _settings.SigenergySellThresholds,
@@ -832,6 +851,7 @@ namespace SigCompanion.ViewModels
 
         partial void OnSelectedSystemChanged(SigenSystemReference? value)
         {
+            _batteryChargeAlerts = new();
             _latestDashboardHistory = null;
             EnergyPrices = null;
 
@@ -1057,6 +1077,32 @@ namespace SigCompanion.ViewModels
             }
         }
 
+        private void UpdateBatterySoc(decimal stateOfCharge)
+        {
+            BatterySocValue = (double)stateOfCharge;
+            BatterySoc = $"{stateOfCharge:0}%";
+
+            if (_batteryChargeAlerts.Update(stateOfCharge, PlayBatterySounds) is { } alert)
+            {
+                _ = PlayBatteryAlertAsync(alert);
+            }
+        }
+
+        private async Task PlayBatteryAlertAsync(BatteryChargeAlert alert)
+        {
+            try
+            {
+                if (_playBatteryAlert is not null)
+                {
+                    await _playBatteryAlert(alert);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Battery sound playback failed: {ex}");
+            }
+        }
+
         private void ApplyModbusPlantInformation(SigenPlantInformation plant)
         {
             var gridPower = plant.GridSensorActivePower;
@@ -1067,8 +1113,7 @@ namespace SigCompanion.ViewModels
                 pvPower + gridPower - loadPower;
 
             IsGridConnected = plant.OnOffGridStatus == 0;
-            BatterySocValue = (double)plant.EnergyStorageSystemSoc;
-            BatterySoc = $"{plant.EnergyStorageSystemSoc:0}%";
+            UpdateBatterySoc(plant.EnergyStorageSystemSoc);
             GridStatus = IsGridConnected ? "Connected" : "Disconnected";
 
             PvPower = FormatPower(pvPower);
@@ -1115,13 +1160,16 @@ namespace SigCompanion.ViewModels
                     : _sigenUiApi.GetPowerFlowSnapshotAsync(systemId, cancellationToken);
 
                 await Task.WhenAll(batteryStatusTask, powerFlowTask);
+                cancellationToken.ThrowIfCancellationRequested();
 
                 var snapshot = await batteryStatusTask;
                 var powerFlow = await powerFlowTask;
 
-                BatterySocValue = (double)snapshot.BatteryStateOfCharge;
+                if (!_modbusHealthy)
+                {
+                    UpdateBatterySoc(snapshot.BatteryStateOfCharge);
+                }
                 IsGridConnected = snapshot.IsGridConnected;
-                BatterySoc = $"{snapshot.BatteryStateOfCharge:0}%";
                 BatteryStatus = snapshot.BatteryStatus.ToString();
                 GridStatus = snapshot.IsGridConnected ? "Connected" : "Disconnected";
 

@@ -10,4 +10,20 @@ const dotnetRuntime = await dotnet
 
 const config = dotnetRuntime.getConfig();
 
+dotnetRuntime.setModuleImports("batteryAudio", {
+    async playBatterySound(wav) {
+        const url = URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
+        const audio = new Audio(url);
+        const cleanup = () => URL.revokeObjectURL(url);
+        audio.addEventListener("ended", cleanup, { once: true });
+        audio.addEventListener("error", cleanup, { once: true });
+        try {
+            await audio.play();
+        } catch (error) {
+            cleanup();
+            throw error;
+        }
+    }
+});
+
 await dotnetRuntime.runMain(config.mainAssemblyName, [globalThis.location.href]);
