@@ -7,6 +7,7 @@ using data from the cloud API and local Modbus interface.
 
 Store installation links:
  - [Android (Google Play)](https://play.google.com/store/apps/details?id=com.thirtyhippos.sigcompanion)
+ - [Windows (Microsoft Store)](https://apps.microsoft.com/detail/9P4P4R8PHNBM)
 
 Other information:
  - [FAQs](https://github.com/tomhollander/SigCompanion/wiki/FAQs)
