@@ -1252,7 +1252,8 @@ namespace SigCompanion.ViewModels
                 .ToArray();
 
             // Each side of zero is drawn as non-stacked filled areas holding cumulative totals.
-            // Series are ordered back to front, so the largest total is drawn first.
+            // From zero outward: Solar, Battery Discharge, Grid Import; Home, EV, Battery Charge, Grid Export.
+            // Draw the outermost cumulative areas first so the inner layers remain visible.
             // Tooltips show each series' underlying value (not the cumulative total) at that time.
             ISeries CreateSeries(string name, string color, DateTime[] times, Func<DateTime, decimal> valueSelector, Func<DateTime, decimal> underlyingSelector, bool showInLegend = true)
             {
@@ -1289,12 +1290,12 @@ namespace SigCompanion.ViewModels
                 CreateSeries("Grid", PowerColors.GridHex, times, t => Sun(t) + BatteryDischarge(t) + GridImport(t), t => GridImport(t) + GridExport(t)),
                 CreateSeries("Battery", PowerColors.BatteryHex, times, t => Sun(t) + BatteryDischarge(t), t => BatteryDischarge(t) + BatteryCharge(t)),
                 CreateSeries("Solar", PowerColors.SolarHex, times, t => Sun(t), t => Sun(t)),
-                CreateSeries("Home", "#ED00FF", times, t => BatteryCharge(t) + Home(t) + Evac(t), t => Home(t)),
-                CreateSeries("Grid", PowerColors.GridHex, times, t => BatteryCharge(t) + Home(t) + Evac(t) + GridExport(t), t => GridExport(t), showInLegend: false),
-                CreateSeries("Battery", PowerColors.BatteryHex, times, t => BatteryCharge(t), t => BatteryCharge(t), showInLegend: false),
+                CreateSeries("Grid", PowerColors.GridHex, times, t => Home(t) + Evac(t) + BatteryCharge(t) + GridExport(t), t => GridExport(t), showInLegend: false),
+                CreateSeries("Battery", PowerColors.BatteryHex, times, t => Home(t) + Evac(t) + BatteryCharge(t), t => BatteryCharge(t), showInLegend: false),
                 .. times.Any(t => Evac(t) != 0m)
-                    ? [CreateSeries("EV", PowerColors.EvHex, times, t => BatteryCharge(t) + Evac(t), t => Evac(t))]
+                    ? [CreateSeries("EV", PowerColors.EvHex, times, t => Home(t) + Evac(t), t => Evac(t))]
                     : Array.Empty<ISeries>(),
+                CreateSeries("Home", PowerColors.HomeHex, times, t => Home(t), t => Home(t)),
             ];
             historicalSocPoints = socValues.Select(p => new DateTimePoint(p.Key, (double)p.Value)).ToArray();
             UpdateHistoricalChartSeries();
