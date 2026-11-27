@@ -16,10 +16,11 @@ public sealed class BatteryGaugeControl : Control
     private const double StartAngle = 99d;
     private const double TotalSweep = 342d;
     private const int Segments = 10;
+    private const double PercentPerSegment = 100d / Segments;
     private const double SegmentSweep = TotalSweep / Segments;
     private const double GapDegrees = 2.4d;
 
-    private readonly record struct RingKey(double Width, double Height, double SocPercent, bool IsGridConnected);
+    private readonly record struct RingKey(double Width, double Height, double SocPercent, double ReservePercent, bool IsGridConnected);
 
     private readonly record struct RingLayout(Point Center, double Radius, double RingThickness, double Size)
     {
@@ -36,6 +37,9 @@ public sealed class BatteryGaugeControl : Control
 
     public static readonly StyledProperty<double> StateOfChargeProperty =
         AvaloniaProperty.Register<BatteryGaugeControl, double>(nameof(StateOfCharge), 0d);
+
+    public static readonly StyledProperty<double> ReservePercentProperty =
+        AvaloniaProperty.Register<BatteryGaugeControl, double>(nameof(ReservePercent), 0d);
 
     public static readonly StyledProperty<bool> IsGridConnectedProperty =
         AvaloniaProperty.Register<BatteryGaugeControl, bool>(nameof(IsGridConnected), true);
@@ -65,7 +69,7 @@ public sealed class BatteryGaugeControl : Control
 
     static BatteryGaugeControl()
     {
-        AffectsRender<BatteryGaugeControl>(StateOfChargeProperty, IsGridConnectedProperty, BatteryPowerProperty, EnableAnimationsProperty);
+        AffectsRender<BatteryGaugeControl>(StateOfChargeProperty, ReservePercentProperty, IsGridConnectedProperty, BatteryPowerProperty, EnableAnimationsProperty);
     }
 
     public BatteryGaugeControl()
@@ -129,6 +133,12 @@ public sealed class BatteryGaugeControl : Control
         set => SetValue(StateOfChargeProperty, value);
     }
 
+    public double ReservePercent
+    {
+        get => GetValue(ReservePercentProperty);
+        set => SetValue(ReservePercentProperty, value);
+    }
+
     public bool IsGridConnected
     {
         get => GetValue(IsGridConnectedProperty);
@@ -148,13 +158,14 @@ public sealed class BatteryGaugeControl : Control
         }
 
         var clampedSoc = Math.Clamp(StateOfCharge, 0d, 100d);
-        var key = new RingKey(width, height, clampedSoc, IsGridConnected);
+        var reservePercent = Math.Clamp(ReservePercent, 0d, 100d);
+        var key = new RingKey(width, height, clampedSoc, reservePercent, IsGridConnected);
         var layout = RingLayout.Create(width, height);
         if (_ringKey != key)
         {
             _ringKey = key;
             _backgroundRing = BuildBackgroundRing(layout, clampedSoc, IsGridConnected);
-            _foregroundRing = BuildForegroundRing(layout, IsGridConnected);
+            _foregroundRing = BuildForegroundRing(layout, reservePercent);
         }
 
         _backgroundRing.Draw(context);
@@ -178,13 +189,13 @@ public sealed class BatteryGaugeControl : Control
             var segmentStart = StartAngle + i * SegmentSweep + GapDegrees / 2d;
             var segmentEnd = StartAngle + (i + 1) * SegmentSweep - GapDegrees / 2d;
 
-            var fillPercent = Math.Clamp(fillSoc - i * 10d, 0d, 10d);
+            var fillPercent = Math.Clamp(fillSoc - i * PercentPerSegment, 0d, PercentPerSegment);
             if (fillPercent <= 0d)
             {
                 continue;
             }
 
-            var activeSegmentSweep = (segmentEnd - segmentStart) * (fillPercent / 10d);
+            var activeSegmentSweep = (segmentEnd - segmentStart) * (fillPercent / PercentPerSegment);
             DrawArc(context, layout.Center, layout.Radius, segmentStart, segmentStart + activeSegmentSweep, activePen);
         }
 
@@ -215,10 +226,10 @@ public sealed class BatteryGaugeControl : Control
             var segmentEnd = StartAngle + (i + 1) * SegmentSweep - GapDegrees / 2d;
             AddArc(group, layout.Center, layout.Radius, segmentStart, segmentEnd, inactivePen);
 
-            var coveredPercent = Math.Clamp(clampedSoc - i * 10d, 0d, 10d);
+            var coveredPercent = Math.Clamp(clampedSoc - i * PercentPerSegment, 0d, PercentPerSegment);
             if (coveredPercent > 0d)
             {
-                var darkSweep = (segmentEnd - segmentStart) * (coveredPercent / 10d);
+                var darkSweep = (segmentEnd - segmentStart) * (coveredPercent / PercentPerSegment);
                 AddArc(group, layout.Center, layout.Radius, segmentStart, segmentStart + darkSweep, darkPen);
             }
         }
@@ -226,9 +237,14 @@ public sealed class BatteryGaugeControl : Control
         return group;
     }
 
-    private static DrawingGroup BuildForegroundRing(RingLayout layout, bool isGridConnected)
+    private static DrawingGroup BuildForegroundRing(RingLayout layout, double reservePercent)
     {
         var group = new DrawingGroup();
+        if (reservePercent > 0d)
+        {
+            group.Children.Add(BuildReserveHatching(layout, reservePercent));
+        }
+
         var dividerPen = new Pen
         {
             Brush = DividerBrush,
@@ -269,6 +285,49 @@ public sealed class BatteryGaugeControl : Control
             Pen = innerCirclePen,
         });
 
+        return group;
+    }
+
+    private static DrawingGroup BuildReserveHatching(RingLayout layout, double reservePercent)
+    {
+        var clip = new StreamGeometry();
+        var innerRadius = layout.Radius - layout.RingThickness / 2d;
+        var outerRadius = layout.Radius + layout.RingThickness / 2d;
+        using (var stream = clip.Open())
+        {
+            for (var i = 0; i < Segments; i++)
+            {
+                var reserveFraction = Math.Clamp(reservePercent / PercentPerSegment - i, 0d, 1d);
+                if (reserveFraction <= 0d)
+                {
+                    break;
+                }
+
+                var start = StartAngle + i * SegmentSweep + GapDegrees / 2d;
+                var end = start + (SegmentSweep - GapDegrees) * reserveFraction;
+                stream.BeginFigure(PointOnCircle(layout.Center, outerRadius, start), true);
+                stream.ArcTo(PointOnCircle(layout.Center, outerRadius, end), new Size(outerRadius, outerRadius), 0d, false, SweepDirection.Clockwise);
+                stream.LineTo(PointOnCircle(layout.Center, innerRadius, end));
+                stream.ArcTo(PointOnCircle(layout.Center, innerRadius, start), new Size(innerRadius, innerRadius), 0d, false, SweepDirection.CounterClockwise);
+                stream.EndFigure(true);
+            }
+        }
+
+        var bounds = clip.Bounds;
+        var spacing = Math.Max(4d, layout.RingThickness * 0.3d);
+        var lines = new StreamGeometry();
+        using (var stream = lines.Open())
+        {
+            for (var x = bounds.Left - bounds.Height; x <= bounds.Right; x += spacing)
+            {
+                stream.BeginFigure(new Point(x, bounds.Bottom), false);
+                stream.LineTo(new Point(x + bounds.Height, bounds.Top));
+                stream.EndFigure(false);
+            }
+        }
+
+        var group = new DrawingGroup { ClipGeometry = clip };
+        group.Children.Add(new GeometryDrawing { Geometry = lines, Pen = new Pen(DividerBrush, Math.Max(1d, spacing * 0.18d)) });
         return group;
     }
 

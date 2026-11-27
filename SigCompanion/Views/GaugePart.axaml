@@ -10,7 +10,11 @@
         </Style>
     </UserControl.Styles>
     <Grid Width="280" Height="280">
-        <controls:BatteryGaugeControl StateOfCharge="{Binding BatterySocValue}" IsGridConnected="{Binding IsGridConnected}" BatteryPower="{Binding PowerFlows.BatteryPower}" EnableAnimations="{Binding EnableAnimations}" />
+        <controls:BatteryGaugeControl StateOfCharge="{Binding BatterySocValue}"
+                                      ReservePercent="{Binding BatteryReservePercent}"
+                                      IsGridConnected="{Binding IsGridConnected}"
+                                      BatteryPower="{Binding PowerFlows.BatteryPower}"
+                                      EnableAnimations="{Binding EnableAnimations}" />
  
         <Image Source="/Assets/grid_disconnected.png"
                 Width="34"

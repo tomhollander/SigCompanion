@@ -43,6 +43,22 @@ public sealed class SigenModbusClientTests
         Assert.Equal(7.654m, refreshed.AcEvChargingPower);
     }
 
+    [Theory]
+    [InlineData(0, 0d)]
+    [InlineData(157, 15.7)]
+    [InlineData(1000, 100d)]
+    [InlineData(65535, null)]
+    public async Task ReadsBackupSocFromOneHoldingRegister(int rawValue, double? expectedPercent)
+    {
+        using var server = new ModbusServer { BackupSocRaw = (ushort)rawValue };
+        using var client = new SigenModbusClient("127.0.0.1", server.Port, 247);
+
+        var percent = await client.GetBackupSocAsync();
+
+        Assert.Equal((decimal?)expectedPercent, percent);
+        Assert.Equal(((byte)3, (ushort)40046, (ushort)1), Assert.Single(server.Requests));
+    }
+
     private sealed class ModbusServer : IDisposable
     {
         private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
@@ -59,6 +75,7 @@ public sealed class SigenModbusClientTests
         public int Port { get; }
         public bool FailDc { get; set; }
         public bool FailAc { get; set; }
+        public ushort BackupSocRaw { get; init; }
         public ConcurrentQueue<(byte Function, ushort Address, ushort Count)> Requests { get; } = new();
 
         private async Task AcceptConnectionsAsync()
@@ -101,6 +118,10 @@ public sealed class SigenModbusClientTests
                         if (!fail && address is 31502 or 32003)
                         {
                             BinaryPrimitives.WriteInt32BigEndian(response.AsSpan(9), address == 31502 ? -1234 : 7654);
+                        }
+                        else if (address == 40046)
+                        {
+                            BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(9), BackupSocRaw);
                         }
 
                         await stream.WriteAsync(response, _cancellation.Token);

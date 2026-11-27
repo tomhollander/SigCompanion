@@ -14,6 +14,7 @@ public sealed class SigenModbusClient : IDisposable
     private const ushort ThirdPartyInverterActivePowerAddress = 30194;
     private const ushort DcEvChargingPowerAddress = 31502;
     private const ushort AcEvChargingPowerAddress = 32003;
+    private const ushort BackupSocAddress = 40046;
     private const int MbapHeaderLength = 6;
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(20);
 
@@ -134,6 +135,17 @@ public sealed class SigenModbusClient : IDisposable
             AcEvChargingPower = acEvChargingPower,
             DcEvChargingPower = dcEvChargingPower
         };
+    }
+
+    public async Task<decimal?> GetBackupSocAsync(CancellationToken cancellationToken = default)
+    {
+#if SIMULATE_MODBUS
+        return 15m;
+#else
+        var registers = await ReadHoldingRegistersAsync(BackupSocAddress, 1, cancellationToken);
+        var percent = BinaryPrimitives.ReadUInt16BigEndian(registers) / 10m;
+        return percent <= 100m ? percent : null;
+#endif
     }
 
     private async Task<decimal?> ReadOptionalEvChargingPowerAsync(ushort address, CancellationToken cancellationToken)

@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -30,11 +31,14 @@ namespace SigCompanion.ViewModels
 {
     public partial class MainViewModel : ViewModelBase
     {
+        private static readonly TimeSpan BackupSocCacheDuration = TimeSpan.FromHours(1);
+        private static readonly TimeSpan BackupSocRetryDelay = TimeSpan.FromMinutes(1);
         private readonly SigenUiApi _sigenUiApi;
         private readonly AppSettingsStore _settingsStore;
         private AppSettings _settings;
         private CancellationTokenSource? _pollingCts;
         private CancellationTokenSource? _modbusCts;
+        private (string Host, int Port, double Percent, DateTimeOffset ExpiresAt)? _backupSocCache;
         private bool _modbusHealthy;
         private bool _isAuthenticated;
         private bool _isDemoMode;
@@ -114,6 +118,9 @@ namespace SigCompanion.ViewModels
 
         [ObservableProperty]
         private double batterySocValue;
+
+        [ObservableProperty]
+        private double batteryReservePercent;
 
         [ObservableProperty]
         private string batteryStatus;
@@ -890,6 +897,7 @@ namespace SigCompanion.ViewModels
             _modbusCts?.Dispose();
             _modbusCts = null;
             _modbusHealthy = false;
+            BatteryReservePercent = 0d;
             IsModbusUnavailable = false;
             ModbusUnavailableError = string.Empty;
         }
@@ -969,6 +977,12 @@ namespace SigCompanion.ViewModels
         private async Task PollModbusLoopAsync(string host, int port, CancellationToken cancellationToken)
         {
             using var modbusClient = new SigenModbusClient(host, port, 247);
+            var nextBackupSocRead = DateTimeOffset.MinValue;
+            if (_backupSocCache is { } cached && cached.Host == host && cached.Port == port)
+            {
+                BatteryReservePercent = cached.Percent;
+                nextBackupSocRead = cached.ExpiresAt;
+            }
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -985,6 +999,22 @@ namespace SigCompanion.ViewModels
                     _modbusHealthy = true;
                     IsModbusUnavailable = false;
                     ModbusUnavailableError = string.Empty;
+
+                    if (DateTimeOffset.UtcNow >= nextBackupSocRead)
+                    {
+                        var percent = await ReadBackupSocAsync(modbusClient, cancellationToken);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (percent is { } value)
+                        {
+                            nextBackupSocRead = DateTimeOffset.UtcNow + BackupSocCacheDuration;
+                            _backupSocCache = (host, port, (double)value, nextBackupSocRead);
+                            BatteryReservePercent = (double)value;
+                        }
+                        else
+                        {
+                            nextBackupSocRead = DateTimeOffset.UtcNow + BackupSocRetryDelay;
+                        }
+                    }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -1011,6 +1041,19 @@ namespace SigCompanion.ViewModels
                 {
                     return;
                 }
+            }
+        }
+
+        private static async Task<decimal?> ReadBackupSocAsync(SigenModbusClient client, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await client.GetBackupSocAsync(cancellationToken);
+            }
+            catch (Exception ex) when (ex is IOException or SocketException or TimeoutException)
+            {
+                Debug.WriteLine($"Modbus backup SOC read failed: {ex}");
+                return null;
             }
         }
 
