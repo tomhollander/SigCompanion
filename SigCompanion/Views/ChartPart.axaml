@@ -6,5 +6,7 @@
              x:DataType="vm:MainViewModel">
     <lvc:CartesianChart x:Name="HistoricalPowerChart"
                         LegendPosition="Bottom"
+                        FindingStrategy="Automatic"
+                        TooltipPosition="Right"
                         MinHeight="180" />
 </UserControl>

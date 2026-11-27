@@ -76,9 +76,9 @@
                             <Grid.RenderTransform>
                                 <TranslateTransform />
                             </Grid.RenderTransform>
-                            <Grid RowDefinitions="Auto,*" RowSpacing="8">
-                                <views:TransposedEnergyTablePart HorizontalAlignment="Center" />
-                                <views:ChartPart x:Name="PhoneLandscapeChart" Grid.Row="1" />
+                            <Grid ColumnDefinitions="Auto,*" RowSpacing="8" ColumnSpacing="10">
+                                <views:TransposedEnergyTablePart HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <views:ChartPart x:Name="PhoneLandscapeChart" Grid.Column="1" MaxHeight="300" />
                             </Grid>
                             <views:EnergyPricePart Grid.Row="1" Classes="total-only" Margin="0,4"
                                                    IsVisible="{Binding ShowEnergyPrices}" />

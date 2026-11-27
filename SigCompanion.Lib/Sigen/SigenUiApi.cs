@@ -8,6 +8,7 @@ public sealed class SigenUiApi
     private const string HistoricalLevelDay = "Day";
     private static readonly TimeSpan DefaultCachePeriod = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan HistoricalYesterdayCachePeriod = TimeSpan.FromDays(400);
+    private static readonly TimeSpan YesterdayBillCachePeriod = TimeSpan.FromMinutes(30);
 
     private readonly SigenCachedApiClient _cachedApiClient;
 
@@ -43,7 +44,7 @@ public sealed class SigenUiApi
         _cachedApiClient.GetDailyBillTotalAsync(stationId, date, cancellationToken);
 
     internal Task<decimal> GetHistoricalDailyBillTotalAsync(long stationId, DateOnly date, CancellationToken cancellationToken) =>
-        _cachedApiClient.GetHistoricalDailyBillTotalAsync(stationId, date, HistoricalYesterdayCachePeriod, cancellationToken);
+        _cachedApiClient.GetHistoricalDailyBillTotalAsync(stationId, date, YesterdayBillCachePeriod, cancellationToken);
 
     public async Task<IReadOnlyList<SigenSystemReference>> GetSystemsAsync(CancellationToken cancellationToken = default)
     {

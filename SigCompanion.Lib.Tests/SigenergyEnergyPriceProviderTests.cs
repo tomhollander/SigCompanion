@@ -18,13 +18,14 @@ public sealed class SigenergyEnergyPriceProviderTests
     }
 
     [Fact]
-    public async Task RefreshGetsFreshTodayBillAndCachesYesterdayBillWithReversedSigns()
+    public async Task RefreshGetsFreshTodayBillAndRefetchesYesterdayBillAfterCacheExpires()
     {
         const string pricePath = "/electricity-price/api/price-preview/home/123?dt=2026-11-21";
         const string todayBillPath = "/data-process/sigen/station/statistics/bill?stationId=123&dateFlag=1&startDate=20261121&endDate=20261121";
         const string yesterdayBillPath = "/data-process/sigen/station/statistics/bill?stationId=123&dateFlag=1&startDate=20261120&endDate=20261120";
         var requests = new List<string>();
         var todayBillRequests = 0;
+        var yesterdayBillRequests = 0;
         using var client = new HttpClient(new StubHttpHandler(request =>
         {
             Assert.Equal(HttpMethod.Get, request.Method);
@@ -38,23 +39,31 @@ public sealed class SigenergyEnergyPriceProviderTests
                 todayBillPath => ++todayBillRequests == 1
                     ? """{"code":0,"data":{"stationId":123,"total":-0.05,"saleRevenue":0.04,"purchaseExpense":0.09,"fixedDailyFee":0,"dataSeries":[]}}"""
                     : """{"code":0,"data":{"total":-0.08}}""",
-                yesterdayBillPath => """{"code":0,"data":{"total":0.20}}""",
+                yesterdayBillPath => ++yesterdayBillRequests == 1
+                    ? """{"code":0,"data":{"total":0.20}}"""
+                    : """{"code":0,"data":{"total":0.35}}""",
                 _ => throw new InvalidOperationException($"Unexpected request: {path}"),
             };
         }));
-        var api = new SigenUiApi(new SigenCachedApiClient(new SigenApiClient(client)));
+        var clock = new ManualTimeProvider { UtcNow = new DateTimeOffset(2026, 11, 20, 13, 10, 0, TimeSpan.Zero) };
+        var api = new SigenUiApi(new SigenCachedApiClient(new SigenApiClient(client), clock));
         api.SetCredentials(new SigenCredentials { AccessToken = "test-token" });
         var provider = new SigenergyEnergyPriceProvider(api);
         var now = new DateTime(2026, 11, 21, 0, 10, 0);
 
         var first = await provider.GetPricesAsync(now);
+        clock.UtcNow += TimeSpan.FromMinutes(2);
         var second = await provider.GetPricesAsync(now.AddMinutes(2));
+        clock.UtcNow += TimeSpan.FromMinutes(29);
+        var third = await provider.GetPricesAsync(now.AddMinutes(31));
 
         Assert.Equal(0.05m, first.TodayTotalDollars);
         Assert.Equal(-0.20m, first.YesterdayTotalDollars);
         Assert.Equal(0.08m, second.TodayTotalDollars);
         Assert.Equal(first.YesterdayTotalDollars, second.YesterdayTotalDollars);
-        Assert.Equal(new[] { "/device/owner/station/home", pricePath, todayBillPath, yesterdayBillPath, pricePath, todayBillPath }, requests);
+        Assert.Equal(-0.35m, third.YesterdayTotalDollars);
+        Assert.Equal(new[] { "/device/owner/station/home", pricePath, todayBillPath, yesterdayBillPath,
+            pricePath, todayBillPath, pricePath, todayBillPath, yesterdayBillPath }, requests);
     }
 
     [Fact]
@@ -106,5 +115,12 @@ public sealed class SigenergyEnergyPriceProviderTests
         Assert.Equal(2, yesterdayBillRequests);
         Assert.Equal("en-GB", provider.CurrencyCulture.Name);
         Assert.Equal("p", provider.MinorUnitSuffix);
+    }
+
+    private sealed class ManualTimeProvider : TimeProvider
+    {
+        public DateTimeOffset UtcNow { get; set; }
+
+        public override DateTimeOffset GetUtcNow() => UtcNow;
     }
 }

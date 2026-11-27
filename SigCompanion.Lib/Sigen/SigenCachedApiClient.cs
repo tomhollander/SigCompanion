@@ -8,12 +8,19 @@ namespace SigCompanion.Lib.Sigen;
 public sealed class SigenCachedApiClient
 {
     private readonly SigenApiClient _innerClient;
+    private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, CacheEntry> _cache = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _keyLocks = new();
 
     public SigenCachedApiClient(SigenApiClient innerClient)
+        : this(innerClient, TimeProvider.System)
+    {
+    }
+
+    public SigenCachedApiClient(SigenApiClient innerClient, TimeProvider timeProvider)
     {
         _innerClient = innerClient ?? throw new ArgumentNullException(nameof(innerClient));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public void SetLoginCredentials(string username, string password) =>
@@ -188,7 +195,7 @@ public sealed class SigenCachedApiClient
             }
 
             var fresh = await fetch(cancellationToken).ConfigureAwait(false);
-            _cache[cacheKey] = new CacheEntry(DateTimeOffset.UtcNow, fresh!);
+            _cache[cacheKey] = new CacheEntry(_timeProvider.GetUtcNow(), fresh!);
             return fresh;
         }
         finally
@@ -206,7 +213,7 @@ public sealed class SigenCachedApiClient
             return false;
         }
 
-        var age = DateTimeOffset.UtcNow - entry.CachedAtUtc;
+        var age = _timeProvider.GetUtcNow() - entry.CachedAtUtc;
         if (age > cachePeriod)
         {
             return false;

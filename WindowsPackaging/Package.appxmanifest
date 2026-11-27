@@ -9,7 +9,7 @@
   <Identity
     Name="55758OcelotSoft.SigCompanion"
     Publisher="CN=D7704B38-366D-4509-AEE2-22AB090DC0FD"
-    Version="1.1.0.0" />
+    Version="1.2.0.0" />
 
   <Properties>
     <DisplayName>Sig Companion</DisplayName>
