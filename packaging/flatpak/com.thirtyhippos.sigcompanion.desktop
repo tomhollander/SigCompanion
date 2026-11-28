@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Sig Companion
+Comment=Monitor your Sigenergy battery and solar production
+Exec=SigCompanion.Desktop
+Icon=com.thirtyhippos.sigcompanion
+Terminal=false
+Categories=System;Monitor;
+Keywords=Sigenergy;solar;battery;energy;

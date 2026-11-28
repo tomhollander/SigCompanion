@@ -29,7 +29,10 @@ internal static class BatterySoundPlayer
         try
         {
             await File.WriteAllBytesAsync(path, wav);
-            var startInfo = new ProcessStartInfo(OperatingSystem.IsMacOS() ? "/usr/bin/afplay" : "aplay")
+            var playerPath = OperatingSystem.IsMacOS()
+                ? "/usr/bin/afplay"
+                : File.Exists("/.flatpak-info") ? "/usr/bin/paplay" : "aplay";
+            var startInfo = new ProcessStartInfo(playerPath)
             {
                 UseShellExecute = false
             };

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.thirtyhippos.sigcompanion</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>Sig Companion</name>
+  <summary>Monitor your Sigenergy battery and solar production</summary>
+  <developer id="com.thirtyhippos">
+	<name>Thirty Hippos</name>
+  </developer>
+  <description>
+	<p>Sig Companion is a dashboard for Sigenergy home energy systems. View battery charge, solar production, and energy flows between your home, battery, and the grid.</p>
+	<p>Connect through the Sigenergy cloud API or local Modbus, or explore the dashboard in demo mode without connecting to a system.</p>
+  </description>
+  <launchable type="desktop-id">com.thirtyhippos.sigcompanion.desktop</launchable>
+  <url type="homepage">https://github.com/tomhollander/SigCompanion</url>
+  <url type="bugtracker">https://github.com/tomhollander/SigCompanion/issues</url>
+  <screenshots>
+	<screenshot type="default">
+	  <caption>Sig Companion dashboard</caption>
+	  <image>https://raw.githubusercontent.com/tomhollander/SigCompanion/main/WindowsPackaging/StoreImages/Desktop.png</image>
+	</screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <releases>
+	<release version="1.3.0" date="2026-11-28"/>
+  </releases>
+</component>

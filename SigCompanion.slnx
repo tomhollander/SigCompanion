@@ -7,6 +7,13 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/LinuxPackaging/">
+    <File Path="packaging/flatpak/build.sh" />
+    <File Path="packaging/flatpak/com.thirtyhippos.sigcompanion.desktop" />
+    <File Path="packaging/flatpak/com.thirtyhippos.sigcompanion.metainfo.xml" />
+    <File Path="packaging/flatpak/com.thirtyhippos.sigcompanion.yml" />
+    <File Path="packaging/flatpak/README.md" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
